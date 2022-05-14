@@ -1,0 +1,41 @@
+version: '3.7'
+
+services:
+
+  apserver:
+    build:
+      context: clientTCP
+      dockerfile: Dockerfile
+    image: client-tcp
+    ports: 
+      - "5000:5000"
+    networks:
+      - logstash-network
+    volumes: 
+        - $PWD/clientTCP/app/:/app/
+    depends_on:
+       - logstash
+  
+  
+  logstash:
+    build:
+      context: LogstashDocker
+      dockerfile: Dockerfile
+    image: logstash-for-ukraine
+    volumes: 
+        - $PWD/LogstashDocker/pipeline/:/usr/share/logstash/pipeline/
+    environment: 
+        # limite RAM di 1gb. 
+        - "LS_JAVA_OPTS=-Xms1g -Xmx1g"
+    ports:
+      - "10155:10155"
+    networks:
+        - logstash-network
+    profiles: ["ingestion", "all"]
+
+
+networks:
+
+  logstash-network:
+    name: logstash-network
+    driver: bridge
