@@ -184,20 +184,9 @@ class tgScraper(tgFetch):
             dict[f'{name}{tgScraper.extractID(container)}'] = tgScraper.dictFromMessage(container)
         return dict
 
-
-    #ottiene gli ultimi messaggi
-    def getLastMessages(self,toFile="", stdout=True):
-        self.response = self.load()
-        if self.response == -1:
-            return -1
-        self.soup = soup(self.response,features="html.parser")
-        # self.response = tgScraper.loadSample("containers.txt")
-        # self.soup = soup(self.response,features="html.parser")
-        containers=self.soup.findAll('div',{'class':'tgme_widget_message_wrap js-widget_message_wrap'})
-        dict = tgScraper.containers2dict(containers,tgScraper.getChannelNameFromUrl(self.URL))
-
+    def sendTo(self,dict,toFile="", stdout=False, sendTCP=False):
         #stampa a video
-        if stdout==True:
+        if stdout == True:
             print("get Last Messages:")
             json_object = json.dumps(dict, indent = 2, ensure_ascii=False) 
             print(json_object)
@@ -206,7 +195,22 @@ class tgScraper(tgFetch):
         if toFile!="":
             print(f"Saving messages to {toFile}.")
             tgScraper.dictToFile(toFile,dict)
-        return True
+        
+        if sendTCP == True:
+            self.sendToTCP(dict) 
+
+    #ottiene gli ultimi messaggi
+    def getLastMessages(self,toFile="", stdout=False, sendToTCP=False):
+        self.response = self.load()
+        if self.response == -1:
+            return -1
+        self.soup = soup(self.response,features="html.parser")
+        # self.response = tgScraper.loadSample("containers.txt")
+        # self.soup = soup(self.response,features="html.parser")
+        containers=self.soup.findAll('div',{'class':'tgme_widget_message_wrap js-widget_message_wrap'})
+        dict = tgScraper.containers2dict(containers,tgScraper.getChannelNameFromUrl(self.URL))
+        self.sendTo(dict=dict, toFile=toFile, stdout=stdout,sendTCP=sendToTCP)
+        return dict
 
     def getChannelNameFromUrl(url):
         prev = "t.me/s/"
@@ -328,8 +332,6 @@ class tgScraper(tgFetch):
                 sock.connect((self.HOST, self.PORT))
                 sock.sendall(bytes(data,encoding="utf-8"))
                 print("[client] SENT")
-
-                # print("Sent:     {}".format(data))
                 sock.close()
                 break
             except:
@@ -339,7 +341,7 @@ class tgScraper(tgFetch):
                 # print(f"Tentativo di connessione fallito [n.{i}]")
         return False
 
-    def getAllMessages(self, min_id = None, max_id = None, query = None, sendTCP = False):
+    def getAllMessages(self, min_id = None, max_id = None, query = None, sendTCP = False, toFile="", stdout=False):
         print(f"Getting all messages from {self.URL}")
         chname = tgScraper.getChannelNameFromUrl(self.URL) #ritorna il nome del canale
         parameters_list = [["q",query.replace(" ","+")]] if query != None else []
@@ -347,11 +349,8 @@ class tgScraper(tgFetch):
         html = self.loadMessageByID(current_id,parameters_list).text
         current_id = max(tgScraper.getIdList(html))
         dict = tgScraper.html2dict(html, chname)
-        if sendTCP:
-            self.sendToTCP(dict)
-        # dict2 = {"Made by": "Lorenzo"}
-        # dict.update(dict2)
-        print(f"\n\nCurrent id: {current_id}\n\n")
+        self.sendTo(dict=dict, toFile=toFile, stdout=stdout,sendTCP=sendTCP)
+        print(f"\nCurrent id: {current_id}\n\n")
         parameters_list.append(["after",current_id])
         time_to_sleep = 2
         time.sleep(time_to_sleep)
@@ -359,11 +358,9 @@ class tgScraper(tgFetch):
             html = self.loadParametricMessage(parameters_list).text
             if self.countMessagesInRequest(type="string",source = html) > 0 and current_id < max(tgScraper.getIdList(html)): 
                 current_id = max(tgScraper.getIdList(html)) 
-                # tgScraper.saveToFile(f"FilesRequested/{current_id}_{old_id}.html",html)
                 parameters_list[len(parameters_list)-1][1] = current_id
                 new_dict = tgScraper.html2dict(html, chname) 
-                if sendTCP:
-                    self.sendToTCP(new_dict)
+                self.sendTo(dict=new_dict, toFile=toFile, stdout=stdout,sendTCP=sendTCP)
                 dict.update(new_dict)
                 tgScraper.dictToFile("fileProva.json",dict)
                 time_to_sleep = 3 + rand.randint(1,40)/10
