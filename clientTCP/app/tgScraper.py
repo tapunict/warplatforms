@@ -175,13 +175,25 @@ class tgScraper(tgFetch):
 
         return dict
 
+    #controlla se il messaggio ha un id, ritorna True o False
+    def hasID(container):
+        try:
+            data_post = container.find('div',{'class':'tgme_widget_message'})['data-post']
+            if int(data_post[data_post.find('/')+1:]) >= 0:
+                return True
+            else:
+                print("L'id trovato non è un intero positivo")
+                return False
+        except:
+            print("Trovato un post senza ID[SCARTATO]")
+            return False
 
     #crea un nested dictionary con un dictionary per ogni messaggio(container)
     def containers2dict(containers, name="", min_id=1):
         name = f"{name}_" if name != "" else ""
         dict = {}
         for container in containers:
-            if int(tgScraper.extractID(container)) >= min_id:
+            if tgScraper.hasID(container) and int(tgScraper.extractID(container)) >= min_id:
                 dict[f'{name}{tgScraper.extractID(container)}'] = tgScraper.dictFromMessage(container)
         return dict
 
@@ -295,8 +307,9 @@ class tgScraper(tgFetch):
         containers = msg_soup.findAll('div',{'class':'tgme_widget_message_wrap'})
         ids = []    #lista degli id dei messaggi presenti
         for container in containers:
-            ids.append(int(tgScraper.extractID(container)))
-        print(f"{ids}, max: {max(ids)}")
+            if tgScraper.hasID(container):
+                ids.append(int(tgScraper.extractID(container)))
+        print(f"{ids}, max: {max(ids if ids != [] else [0])}")
         return ids
     
     #ritorna il numero di messaggi nella richiesta e la lista degli id presenti
@@ -346,13 +359,20 @@ class tgScraper(tgFetch):
                 # print(f"Tentativo di connessione fallito [n.{i}]")
         return False
 
+    def getMaxId(html):
+        ids = tgScraper.getIdList(html)
+        if ids == []:
+            return 0
+        return max(ids)
+
     def getAllMessages(self, min_id = None, max_id = None, query = None, sendTCP = False, toFile="", stdout=False, batch=True):
         print(f"Getting all messages from {self.URL}")
         parameters_list = [["q",query.replace(" ","+")]] if query != None else []
         current_id = min_id if min_id != None else 1
         html = self.loadMessageByID(current_id,parameters_list).text
-        current_id = max(tgScraper.getIdList(html))
+        tgScraper.saveToFile("file_speriamo.txt",html)
         dict = tgScraper.html2dict(html, self.chname)
+        current_id = tgScraper.getMaxId(html)
         self.sendTo(dict=dict, toFile=toFile, stdout=stdout,sendTCP=sendTCP)
         print(f"\nCurrent id: {current_id}\n\n")
         parameters_list.append(["after",current_id])
@@ -361,12 +381,11 @@ class tgScraper(tgFetch):
         while True:
             html = self.loadParametricMessage(parameters_list).text
             if self.countMessagesInRequest(type="string",source = html) > 0 and current_id < max(tgScraper.getIdList(html)): 
-                current_id = max(tgScraper.getIdList(html)) 
+                current_id = tgScraper.getMaxId(html)
                 parameters_list[len(parameters_list)-1][1] = current_id
                 new_dict = tgScraper.html2dict(html, self.chname) 
                 self.sendTo(dict=new_dict, toFile=toFile, stdout=stdout,sendTCP=sendTCP)
                 dict.update(new_dict)
-                tgScraper.dictToFile("fileProva.json",dict)
                 time_to_sleep = 3 + rand.randint(1,40)/10
             else:
                 if batch:
@@ -387,5 +406,7 @@ class tgScraper(tgFetch):
  
     
 
-    
-    
+    #TODO:
+    #   Query parameter if not found [DONE]
+    #   Hard limit in data fetch
+    #   Clean getAllMessages method
