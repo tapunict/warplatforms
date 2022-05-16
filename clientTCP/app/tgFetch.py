@@ -13,13 +13,21 @@ class tgFetch:
             print(f"Ricevuto: {URL}\t convertito in: {self.URL}")
         print(self.URL)
 
+    def getChannelNameFromUrl(url):
+        prev = "t.me/s/"
+        chname = url[url.find(prev)+len(prev):]
+        # print(chname)
+        return chname
+
     def __init__(self, URL):
         self.formatUrl(URL)
+        self.chname = tgFetch.getChannelNameFromUrl(self.URL)
         self.HOST = "localhost"
         self.PORT = 5000
 
     def __init__(self, URL, HOST, PORT):
         self.formatUrl(URL)
+        self.chname = tgFetch.getChannelNameFromUrl(self.URL)
         self.HOST = HOST
         self.PORT = PORT   
 

@@ -6,14 +6,16 @@ from tgScraper import *
 if __name__ == '__main__': 
 
     # fe = tgFetch("t.me/ciao")
-    fetcher = tgScraper("https://t.me/UkraineNow","logstash",10155)
+    fetcher = tgScraper("https://t.me/UkraineNowItalian","logstash",10155)
+    # fetcher = tgScraper("https://t.me/UkraineNow","logstash",10155)
+    # fetcher = tgScraper("t.me/InteressanteTelegramChannel","logstash",10155)
     
     #Prende gli ultimi messaggi
+    # fetcher.getLastMessages(stdout=True, sendTCP=True,batch=False)
     # fetcher.getLastMessages(stdout=True, toFile="ultimi_messaggi.json")
-    # fetcher.getLastMessages(stdout=True)
 
     #Ritorna tutti i messaggi
-    # fetcher.getAllMessages(sendTCP=True)
+    fetcher.getAllMessages(sendTCP=True, batch = False)
 
     #Ottiene tutti i messaggi che contengono una specifica keyword
     # fetcher.getAllMessages(query="strade",sendTCP=True)
@@ -23,7 +25,7 @@ if __name__ == '__main__':
 
     #Ottiene tutti i messaggi che contengono una specifica keyword
     # fetcher.getAllMessages(min_id=127,max_id=572,sendTCP=True)
-    fetcher.getAllMessages(min_id=11600, sendTCP=True)
+    # fetcher.getAllMessages(min_id=11600, sendTCP=True)
     # fetcher.getAllMessages(max_id=572)
 
     #Prende uno specifico messaggio
