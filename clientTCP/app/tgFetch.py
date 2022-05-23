@@ -21,7 +21,7 @@ class tgFetch:
             print(f"Ricevuto: {URL}\t convertito in: {self.URL}")
         self.chname = tgFetch.getChannelNameFromUrl(self.URL)
 
-    def getChannelNameFromUrl(url):
+    def getChannelNameFromUrl(url): 
         prev = "t.me/s/"
         chname = url[url.find(prev)+len(prev):]
         # print(chname)

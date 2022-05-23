@@ -5,7 +5,7 @@ import translators as ts
 
 
 
-class translator:
+class translator: 
     
     lang_map = ["auto", "en", "ru", "uk", "it", "de", "ch"] #lingue previste (su cui ho fatto delle prove)
 

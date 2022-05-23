@@ -135,7 +135,7 @@ class tgScraper(tgFetch):
     def bindClassesToFuncs():
         classFunc = {}
         get_text = lambda x : tgScraper.extract_text(x)
-        get_images = lambda x : tgScraper.findImgsLink(x)
+        get_images = lambda x : tgScraper.findImgsLink(x) 
         get_videos = lambda x : tgScraper.findVideos(x)
         #il seguente dizionario verrà popolato dinamicamente da un file di configurazione
         #contenente le associazioni classe html/metodo da invocare per ottenere quel dato

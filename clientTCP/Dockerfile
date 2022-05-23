@@ -15,5 +15,5 @@ WORKDIR /app
 ENV PYTHONUNBUFFERED=0
 
 EXPOSE 5000
-
+ 
 CMD ["python", "-u", "main.py"]
