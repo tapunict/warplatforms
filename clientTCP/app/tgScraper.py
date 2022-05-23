@@ -6,7 +6,6 @@ from bs4 import BeautifulSoup as soup, Tag
 import json 
 from tgFetch import tgFetch
 
-
     #########################################
     #                                       #
     #   ANCORA C'E' TANTO DA SISTEMARE      #
@@ -20,9 +19,9 @@ class tgScraper(tgFetch):
     def __init__(self, URL):
         super().__init__(URL)
         
-    def __init__(self, URL, HOST, PORT):
-        super().__init__(URL, HOST, PORT)
-        
+    def __init__(self, URL, HOST, PORT, translator):
+        super().__init__(URL, HOST, PORT, translator)
+
     def loadSample(filename):
         f = open(filename, "r", encoding="utf-8")
         return f.read()
@@ -145,8 +144,22 @@ class tgScraper(tgFetch):
         classFunc["tgme_widget_message_video_wrap"] = ["videos",get_videos]
         return classFunc
 
+    #traduce il testo di un messaggio
+    def getTranslation(text, translator):
+        if isinstance(text, str):
+            return translator.randomTranslate(text)
+        if isinstance(text, list):
+            if len(text) == 0:
+                return []
+            #se l'array contiene almeno una stringa le unisco separandole da un carattere di ritorno a capo
+            jointText = '\n'.join(text)
+            translated = translator.randomTranslate(jointText)
+            print(f"traduction: {translated}")
+            return translated 
+        return None
+    
     #ottiene un dizionario contenenti i dati del messaggio
-    def dictFromMessage(msg):
+    def dictFromMessage(msg, translator = None):
         dict = {}
 
         #aggiunge ID messaggio
@@ -158,12 +171,15 @@ class tgScraper(tgFetch):
 
         #aggiunge info quali testo, link a video e immagini
         classFunc = tgScraper.bindClassesToFuncs()
-        # print("_______________________________")
-        # print(msg)
-        # print("_______________________________")
         relevant = tgScraper.getDistinct(tgScraper.getRelevantClasses(msg))
         for c in relevant:
             dict[classFunc[c][0]] = classFunc[c][1](msg)
+
+        #aggiunge traduzione, se richiesto
+        if translator != None:
+            try:
+                dict["translation"] = tgScraper.getTranslation(dict["text"],translator)
+            except Exception as e: print(f"(Translation): {e}")
 
         #aggiunge altre info
         try:
@@ -189,12 +205,12 @@ class tgScraper(tgFetch):
             return False
 
     #crea un nested dictionary con un dictionary per ogni messaggio(container)
-    def containers2dict(containers, name="", min_id=1):
+    def containers2dict(containers, name="", min_id=1,translator=None):
         name = f"{name}_" if name != "" else ""
-        dict = {}
+        dict = {}               
         for container in containers:
             if tgScraper.hasID(container) and int(tgScraper.extractID(container)) >= min_id:
-                dict[f'{name}{tgScraper.extractID(container)}'] = tgScraper.dictFromMessage(container)
+                dict[f'{name}{tgScraper.extractID(container)}'] = tgScraper.dictFromMessage(container,translator=translator)
         return dict
 
     def sendTo(self,dict,toFile="", stdout=False, sendTCP=False):
@@ -227,7 +243,8 @@ class tgScraper(tgFetch):
                 return -1
             # self.response = tgScraper.loadSample("containers.txt")
             # self.soup = soup(self.response,features="html.parser")
-            dict = tgScraper.html2dict(self.response, self.chname, min_id= last_id + 1)
+            print(f"lingua di traduzione = {self.translator.TO}")
+            dict = tgScraper.html2dict(self.response, self.chname, min_id= last_id + 1, translator = self.translator)
             last_id = max(tgScraper.getIdList(self.response))
             self.sendTo(dict=dict, toFile=toFile, stdout=stdout,sendTCP=sendTCP)
             if batch:
@@ -332,9 +349,9 @@ class tgScraper(tgFetch):
         containers = _soup.findAll('div',{'class':'tgme_widget_message_wrap js-widget_message_wrap'})
         return containers
 
-    def html2dict(html,name, min_id=1):
+    def html2dict(html,name, min_id=1, translator=None):
         containers = tgScraper.findContainers(html)
-        dict = tgScraper.containers2dict(containers, name, min_id)
+        dict = tgScraper.containers2dict(containers, name, min_id, translator)
         return dict
     
     def sendToTCP(self, dict):
@@ -371,7 +388,7 @@ class tgScraper(tgFetch):
         current_id = min_id if min_id != None else 1
         html = self.loadMessageByID(current_id,parameters_list).text
         tgScraper.saveToFile("file_speriamo.txt",html)
-        dict = tgScraper.html2dict(html, self.chname)
+        dict = tgScraper.html2dict(html, self.chname, translator = self.translator)
         current_id = tgScraper.getMaxId(html)
         self.sendTo(dict=dict, toFile=toFile, stdout=stdout,sendTCP=sendTCP)
         print(f"\nCurrent id: {current_id}\n\n")
@@ -383,7 +400,7 @@ class tgScraper(tgFetch):
             if self.countMessagesInRequest(type="string",source = html) > 0 and current_id < max(tgScraper.getIdList(html)): 
                 current_id = tgScraper.getMaxId(html)
                 parameters_list[len(parameters_list)-1][1] = current_id
-                new_dict = tgScraper.html2dict(html, self.chname) 
+                new_dict = tgScraper.html2dict(html, self.chname, translator = self.translator) 
                 self.sendTo(dict=new_dict, toFile=toFile, stdout=stdout,sendTCP=sendTCP)
                 dict.update(new_dict)
                 time_to_sleep = 3 + rand.randint(1,40)/10

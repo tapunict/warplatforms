@@ -4,7 +4,11 @@ WORKDIR /requirements
 
 COPY ./requirements.txt ./ 
 
+RUN apk add --update nodejs npm
+
 RUN pip --no-cache-dir install -r requirements.txt
+
+RUN pip install translators --upgrade
 
 WORKDIR /app
 
