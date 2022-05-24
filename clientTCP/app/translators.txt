@@ -3,7 +3,7 @@ bing 8 en ru uk it de auto
 reverso 7 en ru uk it de auto
 deepl 9 en ru uk it de auto
 itranslate 8 en ru uk it de auto
-argos 4 en ru it de
+argos 2 en ru it de
 baidu 0 en ru ch
 caiyun 0 en ru ch
 tencent 0 en ru ch
