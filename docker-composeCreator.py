@@ -2,8 +2,17 @@ import configparser
 import subprocess
 import sys
 # import warnings
+# 
+def conf2EnvFormat(config,section,prefix="",backslash=0):
+    backslash_str = "    " * backslash 
+    str = ""
+    for item in config[section].items():
+        option, param = item
+        str += f"{backslash_str}- {prefix}{option.upper()}={param}\n"
+        # print(f"1){item}")
+    return str
 
-def createScriptContainer(channel_name, id, port):
+def createScriptContainer(config,channel_name, port):
     service_name = channel_name.lower()
     container = f"""
             {service_name}:
@@ -18,27 +27,30 @@ def createScriptContainer(channel_name, id, port):
                 volumes:
                     - $PWD/clientTCP/app/:/app/
                     - $PWD/clientTCP/channelConfigs
-                depends_on:
-                    - logstash
-                command: python -u main.py {channel_name} {id}
-                profiles: ["py_{service_name}", "fetching", "all"]
+                environment:
+{conf2EnvFormat(config,channel_name,prefix="ENV_",backslash=5)}
+                command: python -u main.py {channel_name}
+                profiles: ["fetching", "all"]
                 """
     return container
 
-def createContainers(channels,ids):
+def createContainers(config):
+    # for chname in config.sections():
+    #     for item in config[chname].items():
+    #         print(item)
     containers = ""
-    for i in range(0, len(channels)):
-        channel_name = str(channels[i])
-        last_message_id = int(ids[i])
-        containers += createScriptContainer(channel_name,last_message_id, 5000 + i)
+    i = 0
+    for chname in config.sections():
+        containers += createScriptContainer(config,chname, 5000 + i)
+        i += 1
     return containers
 
-def createDockerCompose(channels, ids):
+def createDockerCompose(config):
     script = f"""
     version: '3.7'
 
     services:
-    {createContainers(channels, ids)}
+    {createContainers(config)}
             logstash:
                 build:
                     context: LogstashDocker
@@ -61,16 +73,63 @@ def createDockerCompose(channels, ids):
             driver: bridge"""
     return script
 
-def readChannels():
-    config = configparser.ConfigParser()
-    config.read("config.ini")
-    return config.get('Channel', 'channel_name').split() 
 
-def addNewContainer():
-    config = configparser.ConfigParser()
+def saveDockerCompose():
+    global config
+    docker_compose = createDockerCompose(config)
+    with open("docker-compose.yml", 'w') as f:
+        f.write(docker_compose)
+
+def updateConfig():
+    global config
     config.read("config.ini")
-    print(f"]{config.get('Channel', 'channel_name')}[")
+    saveDockerCompose()
+
+def getConfAbout(chname):
+    global config
+    print(f"Channel: {chname}\nConfiguration options:")
+    for item in config[chname].items():
+        option, param = item
+        print(f"\t{option} : {param}")
+
+#TODO
+# change channel conf method
+# restart channel
+
+def readChannels():
+    global config
+    return config.sections()
+
+def insertOptions():
+    newSection = {}
+    while True:
+        attr = input("Inserisci un attributo (o 'done' per completare la creazione):")
+        if attr == 'done':
+            return newSection
+        value = input(f"Inserisci il valore da assegnare a {attr}:")
+        newSection[attr] = value
+    
+def addNewChannel(params):
+    print("Configurazione di un nuovo canale")
+    global config
+    # print(config.sections())
+    if params == []:
+        chname = input("Nome del canale: ")
+    else:
+        chname = params[0]
+    config[chname] = insertOptions()
+
+    #aggiorna il config.ini
+    with open('config.ini', 'w') as configfile:
+       config.write(configfile)
+
+    #modifica il docker-compose.yml
+    saveDockerCompose()
+    
+    print("Ora i canali sono:")
+    print(config.sections())
     #TO FINISH
+
 commands_info = {
     "start": "Esegue i container previsti nel docker compose in modalità detatch. Identico al comando up",
     "up": "Esegue i container previsti nel docker compose in modalità detatch. Identico al comando start",
@@ -79,7 +138,12 @@ commands_info = {
     "stop" : "Permette di stoppare uno o più container \n\t(stop [<nome_servizio>])",
     "run-profile" : "Permette di eseguire soltanto i container del docker-compose relativi ad uno specifico profilo \n\t(run-profile <nome_profilo>)",
     "channels" : "Stampa i canali gestiti",
+    "conf" :  "Visualizza i parametri di configurazione di uno specifico canale \n\t(conf <nome_canale>)",
+    "add" : "Aggiunge un nuovo canale \n\t(add <nome_canale>)",
+    "run" : "Esegui i container passati in input  \n\t(run [<nome_canale>])",
+    "update" : "carica la versione corrente del config.ini, utile in caso di modifiche effettuate direttamente sul file",
 }
+
 def printCommandsInfo():
     for command in commands_info:
         print(f"{command}: {commands_info[command]}\n")
@@ -90,10 +154,13 @@ commands = {
     "up": lambda x : subprocess.run(["docker-compose","--profile", "fetching", "up", "--detach"]),
     "start" : lambda x : subprocess.run(["docker-compose","--profile", "fetching", "up", "--detach"]),
     "run-profile": lambda x : subprocess.run(["docker-compose","--profile", x[0], "up", "--detach"]),
+    "run" : lambda x : subprocess.run(["docker-compose", "up"]+x+["--detach"]),
+    "update" : lambda x : updateConfig(),
     "list" : lambda x : subprocess.run(["docker-compose","ps"]),
     "channels" : lambda x : print(readChannels()),
     "stop" : lambda x : subprocess.run(["docker-compose","stop"]+x),
-    "add" : lambda x : addNewContainer(),
+    "add" : lambda x : addNewChannel(x),
+    "conf" : lambda x : getConfAbout(x[0]),
     "help" : lambda x : printCommandsInfo(),
 }
 
@@ -110,14 +177,7 @@ def execCommand(command):
 if __name__ == '__main__':
     config = configparser.ConfigParser()
     config.read("config.ini")
-
-    channels = config.get('Channel', 'channel_name').split()
-    ids = config.get('Channel', 'last_message_id').split()
-
-    docker_compose = createDockerCompose(channels, ids)
-    # original_stdout = sys.stdout
-    with open("docker-compose.yml", 'w') as f:
-        f.write(docker_compose)
+    saveDockerCompose()
     
     print("Running Docker-Compose Interactive Shell...")  
     while True:
