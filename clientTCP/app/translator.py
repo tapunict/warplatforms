@@ -67,6 +67,12 @@ class translator:
 
 
     def randomTranslate(self,text):
+        from_lang = ""
+        if isinstance(self.FROM, list):
+            if len(self.FROM) == 1:
+                from_lang = self.FROM[0]
+            else:
+                from_lang = "auto"
         while True:
             #sceglie un intero random tra 0 e la somma totale dei voti -1(che corrisponde all'ultima somma parziale -1)
             rand_val = rand.randint(0,self.partial_sums[len(self.partial_sums)-1]-1)
@@ -77,7 +83,7 @@ class translator:
             service = self.list[pos]["service"]
             try:
                 #chiama il metodo translate
-                translation = translator.translate(text=text,translator=service,FROM=self.FROM,TO=self.TO)
+                translation = translator.translate(text=text,translator=service,FROM=from_lang,TO=self.TO)
                 return {"service":service,"text":translation}
             except Exception as e: print(f"({service} translator): {e}")
 

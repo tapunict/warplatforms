@@ -162,6 +162,7 @@ commands = {
     "add" : lambda x : addNewChannel(x),
     "conf" : lambda x : getConfAbout(x[0]),
     "help" : lambda x : printCommandsInfo(),
+    "exit" : lambda x : sys.exit(0),
 }
 
 def execCommand(command):
@@ -170,7 +171,7 @@ def execCommand(command):
         answer = commands[params[0].lower()](params[1:])
         print(answer)
     else:
-        print(f"\tIl comando {command} non è previsto")
+        print(f"\tIl comando {command} non è previsto")  
     return    
 
 

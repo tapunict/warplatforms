@@ -1,32 +1,65 @@
+import os
 import sys
 from tgScraper import *
 from translator import translator
 
 
+def toBool(str):
+    return False if str.lower() == "false" else True
 
+def strOrNone(str):
+    return None if str.lower() == "none" else str
 
 if __name__ == '__main__': 
-    channel = "https://t.me/" + sys.argv[1]
-    last_id = sys.argv[2]
 
-    ## language
-    # input languages
-    # print(ts.google(wyw_text)) # default: from_language='auto', to_language='en'
-    # output language_map
-    # print(ts._google.language_map)
+    # Il canale viene passato come parametro all'esecuzione di main.py
+    channel = "https://t.me/" + sys.argv[1]
+
+    # I restanti parametri vengono passati come varabiali d'ambiente
+    last_id = os.environ['ENV_LAST_ID']
+    overwrite_last_id = toBool(os.environ['ENV_OVERWRITE_LAST_ID'])
+    method = os.environ['ENV_METHOD']
+    batch = toBool(os.environ['ENV_BATCH'])
+    toFile = toBool(os.environ['ENV_TO_FILE'])
+    stdout = toBool(os.environ['ENV_STDOUT'])
+    sendTCP = toBool(os.environ['ENV_SENDTCP'])
+    translation = toBool(os.environ['ENV_TRANSLATION'])
+    query = strOrNone(os.environ['ENV_QUERY'])
+    translateFROM = os.environ['ENV_TRANSLATE_FROM'].split()
+    translateTO = os.environ['ENV_TRANSLATE_TO']
+    
+    if toFile == True:
+        toFile == "messages.json"
+    else:
+        toFile == ""
+
+    print(last_id)
+    print(overwrite_last_id)
+    print(method)
+    print(type(batch))
+    print(toFile)
+    print(stdout)
+    print(sendTCP)
+    print(translation)
+    print(translateFROM)
+    print(translateTO)
+
 
     #effettua una traduzione
-    tr = translator(file="translators.txt",FROM = "it", TO= "en")
-
-    # fe = tgFetch("t.me/ciao")
+    tr = None
+    if translation == True:
+        tr = translator(file="translators.txt",FROM = translateFROM, TO= translateTO)
+    
     fetcher = tgScraper(channel,"logstash",10155,tr)
     # fetcher = tgScraper("https://t.me/UkraineNow","logstash",10155,tr)
     # fetcher = tgScraper("t.me/InteressanteTelegramChannel","logstash",10155,tr)
-    russian_text = """
-    Я хочу научиться играть на гитаре и фортепиано.
-    Я с детства хотел завести собаку, но родители мне не разрешали. Пока я был ребёнком, у меня жил хомяк Хома. Хома был очень маленький и пушистый.
-     Его шерсть была средней длинны и коричневого цвета. Родители купили большую клетку для него, с двумя этажами. Я был очень рад, когда у меня появился маленький друг.
-     Было очень весело смотреть как Хома бегает в колесе. Мне нравилось кормить его морковкой и орехами."""
+    
+    if method.lower() == "all":
+        fetcher.getAllMessages( min_id = last_id, max_id = None, query = query, sendTCP = sendTCP, toFile=toFile, stdout=stdout, batch=batch)
+    elif method.lower() == "new":
+        fetcher.getLastMessages(toFile="", stdout=stdout, sendTCP=sendTCP, batch=batch, sleepTime = 35)
+    else:
+        print(f"method: {method} isn't correct")
 
     # print(tr.list)
     # print(translator.translate(text="Я хочу научиться играть на гитаре и фортепиано", FROM="ru", TO="en", translator="argos"))
@@ -34,7 +67,7 @@ if __name__ == '__main__':
     # print(tr.randomTranslate(text="Ciao, proviamo questo servizio. Gli alberi sono in fiore"))
     # tr.allServicesTranslate(russian_text)
     #Prende gli ultimi messaggi
-    fetcher.getLastMessages(stdout=True, batch=False)
+    # fetcher.getLastMessages(stdout=True, batch=False)
     # fetcher.getLastMessages(stdout=True, sendTCP=True, batch=False)
 
     #THIS

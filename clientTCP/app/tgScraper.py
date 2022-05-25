@@ -154,6 +154,7 @@ class tgScraper(tgFetch):
             #se l'array contiene almeno una stringa le unisco separandole da un carattere di ritorno a capo
             jointText = '\n'.join(text)
             translated = translator.randomTranslate(jointText)
+            translated['text'] = translated['text'].split('\n')
             print(f"traduction: {translated}")
             return translated 
         return None
