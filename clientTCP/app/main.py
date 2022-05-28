@@ -16,34 +16,31 @@ if __name__ == '__main__':
     channel = "https://t.me/" + sys.argv[1]
 
     # I restanti parametri vengono passati come varabiali d'ambiente
-    last_id = os.environ['ENV_LAST_ID']
+    last_id = int(os.environ['ENV_LAST_ID'])
     overwrite_last_id = toBool(os.environ['ENV_OVERWRITE_LAST_ID'])
     method = os.environ['ENV_METHOD']
     batch = toBool(os.environ['ENV_BATCH'])
-    toFile = toBool(os.environ['ENV_TO_FILE'])
+    toFile = strOrNone(os.environ['ENV_TO_FILE'])
     stdout = toBool(os.environ['ENV_STDOUT'])
     sendTCP = toBool(os.environ['ENV_SENDTCP'])
     translation = toBool(os.environ['ENV_TRANSLATION'])
     query = strOrNone(os.environ['ENV_QUERY'])
     translateFROM = os.environ['ENV_TRANSLATE_FROM'].split()
     translateTO = os.environ['ENV_TRANSLATE_TO']
-    
-    if toFile == True:
-        toFile == "messages.json"
-    else:
-        toFile == ""
+    delay = int(os.environ['ENV_DELAY'])
 
-    print(last_id)
-    print(overwrite_last_id)
-    print(method)
-    print(type(batch))
-    print(toFile)
-    print(stdout)
-    print(sendTCP)
-    print(translation)
-    print(translateFROM)
-    print(translateTO)
+    # print(last_id)
+    # print(overwrite_last_id)
+    # print(method)
+    # print(type(batch))
+    # print(f"toFile = {toFile}")
+    # print(stdout)
+    # print(sendTCP)
+    # print(translation)
+    # print(translateFROM)
+    # print(translateTO)
 
+    toFile=f"{toFile}.json"
 
     #effettua una traduzione
     tr = None
@@ -57,7 +54,7 @@ if __name__ == '__main__':
     if method.lower() == "all":
         fetcher.getAllMessages( min_id = last_id, max_id = None, query = query, sendTCP = sendTCP, toFile=toFile, stdout=stdout, batch=batch)
     elif method.lower() == "new":
-        fetcher.getLastMessages(toFile="", stdout=stdout, sendTCP=sendTCP, batch=batch, sleepTime = 35)
+        fetcher.getLastMessages(toFile=toFile, stdout=stdout, sendTCP=sendTCP, batch=batch, sleepTime = delay)
     else:
         print(f"method: {method} isn't correct")
 

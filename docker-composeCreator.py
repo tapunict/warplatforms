@@ -66,6 +66,31 @@ def createDockerCompose(config):
                 networks:
                     - logstash-network
                 profiles: ["ingestion", "all"]
+                
+            elasticsearch: 
+                image: elasticsearch:7.9.2 
+                ports: 
+                    - '9200:9200' 
+                environment: 
+                    - discovery.type=single-node
+                    - "ES_JAVA_OPTS=-Xms2g -Xmx2g" 
+                mem_limit: 4g
+                ulimits: 
+                    memlock: 
+                        soft: -1 
+                        hard: -1 
+                networks: 
+                    - logstash-network
+                profiles: ["storage", "all"] 
+             
+            kibana: 
+                image: kibana:7.9.2 
+                ports: 
+                    - '5601:5601' 
+                networks: 
+                    - logstash-network
+                mem_limit: 1g
+                profiles: ["visualization", "all"] 
 
     networks:
         logstash-network:
@@ -88,9 +113,13 @@ def updateConfig():
 def getConfAbout(chname):
     global config
     print(f"Channel: {chname}\nConfiguration options:")
-    for item in config[chname].items():
-        option, param = item
-        print(f"\t{option} : {param}")
+    for section in config.sections():
+        if section.lower() == chname.lower():
+            for item in config[section].items():
+                option, param = item
+                print(f"\t{option} : {param}")
+            return True
+    print(f"Non è stata trovata alcuna configurazione corrispondente a {chname} ")
 
 #TODO
 # change channel conf method
@@ -151,7 +180,7 @@ def printCommandsInfo():
 
 commands = {
     "shell": lambda x : subprocess.run(x),
-    "up": lambda x : subprocess.run(["docker-compose","--profile", "fetching", "up", "--detach"]),
+    "up": lambda x : subprocess.run(["docker-compose","--profile", "all", "up", "--detach"]),
     "start" : lambda x : subprocess.run(["docker-compose","--profile", "fetching", "up", "--detach"]),
     "run-profile": lambda x : subprocess.run(["docker-compose","--profile", x[0], "up", "--detach"]),
     "run" : lambda x : subprocess.run(["docker-compose", "up"]+x+["--detach"]),
