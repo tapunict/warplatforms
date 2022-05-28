@@ -40,7 +40,8 @@ if __name__ == '__main__':
     # print(translateFROM)
     # print(translateTO)
 
-    toFile=f"{toFile}.json"
+    if toFile != None:
+        toFile=f"{toFile}.json"
 
     #effettua una traduzione
     tr = None
@@ -52,7 +53,7 @@ if __name__ == '__main__':
     # fetcher = tgScraper("t.me/InteressanteTelegramChannel","logstash",10155,tr)
     
     if method.lower() == "all":
-        fetcher.getAllMessages( min_id = last_id, max_id = None, query = query, sendTCP = sendTCP, toFile=toFile, stdout=stdout, batch=batch)
+        fetcher.getAllMessages( min_id = last_id, max_id = None, query = query, sendTCP = sendTCP, toFile=toFile, stdout=stdout, batch=batch, sleepTime = delay)
     elif method.lower() == "new":
         fetcher.getLastMessages(toFile=toFile, stdout=stdout, sendTCP=sendTCP, batch=batch, sleepTime = delay)
     else:

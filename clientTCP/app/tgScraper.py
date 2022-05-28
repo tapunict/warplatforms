@@ -395,7 +395,7 @@ class tgScraper(tgFetch):
         current_id = min_id if min_id != None else 1
         html = self.loadMessageByID(current_id,parameters_list).text
         # tgScraper.saveToFile("file_speriamo.txt",html)
-        dicts = tgScraper.html2dicts(html, self.chname, translator = self.translator)
+        dicts = tgScraper.html2dicts(html, self.chname,min_id = current_id+1, translator = self.translator)
         current_id = tgScraper.getMaxId(html)
         self.sendTo(dict=dicts, toFile=toFile, stdout=stdout,sendTCP=sendTCP)
         print(f"\nCurrent id: {current_id}\n\n")

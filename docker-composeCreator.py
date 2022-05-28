@@ -26,7 +26,6 @@ def createScriptContainer(config,channel_name, port):
                     - logstash-network
                 volumes:
                     - $PWD/clientTCP/app/:/app/
-                    - $PWD/clientTCP/channelConfigs
                 environment:
 {conf2EnvFormat(config,channel_name,prefix="ENV_",backslash=5)}
                 command: python -u main.py {channel_name}
@@ -70,7 +69,7 @@ def createDockerCompose(config):
             elasticsearch: 
                 image: elasticsearch:7.9.2 
                 ports: 
-                    - '9200:9200' 
+                    - '9200:9200'
                 environment: 
                     - discovery.type=single-node
                     - "ES_JAVA_OPTS=-Xms2g -Xmx2g" 
@@ -160,8 +159,8 @@ def addNewChannel(params):
     #TO FINISH
 
 commands_info = {
-    "start": "Esegue i container previsti nel docker compose in modalità detatch. Identico al comando up",
-    "up": "Esegue i container previsti nel docker compose in modalità detatch. Identico al comando start",
+    "start": "Esegue i container previsti nel docker compose in modalità detatch.",
+    "up": "Esegue i container previsti nel docker compose in modalità detatch. Rimuove i container orfani",
     "list" : "Mostra la lista dei container in esecuzione e interrotti",
     "shell" : "Esegue un normale comando su shell \n\t(shell <comando>)",
     "stop" : "Permette di stoppare uno o più container \n\t(stop [<nome_servizio>])",
@@ -180,14 +179,14 @@ def printCommandsInfo():
 
 commands = {
     "shell": lambda x : subprocess.run(x),
-    "up": lambda x : subprocess.run(["docker-compose","--profile", "all", "up", "--detach"]),
+    "up": lambda x : subprocess.run(["docker-compose","--profile", "all", "up", "--detach","--remove-orphans"]),
     "start" : lambda x : subprocess.run(["docker-compose","--profile", "fetching", "up", "--detach"]),
     "run-profile": lambda x : subprocess.run(["docker-compose","--profile", x[0], "up", "--detach"]),
-    "run" : lambda x : subprocess.run(["docker-compose", "up"]+x+["--detach"]),
+    "run" : lambda x : subprocess.run(["docker-compose", "up"]+list(map(lambda t : t.lower(),x))+["--detach"]),
     "update" : lambda x : updateConfig(),
     "list" : lambda x : subprocess.run(["docker-compose","ps"]),
     "channels" : lambda x : print(readChannels()),
-    "stop" : lambda x : subprocess.run(["docker-compose","stop"]+x),
+    "stop" : lambda x : subprocess.run(["docker-compose","stop"]+list(map(lambda t : t.lower(),x))),
     "add" : lambda x : addNewChannel(x),
     "conf" : lambda x : getConfAbout(x[0]),
     "help" : lambda x : printCommandsInfo(),
@@ -196,6 +195,8 @@ commands = {
 
 def execCommand(command):
     params = command.split()
+    if params == []:
+        return
     if params[0].lower() in commands:
         answer = commands[params[0].lower()](params[1:])
         print(answer)
