@@ -30,5 +30,5 @@ while True:
         sock.close()
     except:
         i += 1
-        print(f"Calunnia numero {i}")
+        print(f"Tentativo di connessione fallito numero {i}")
     time.sleep(5)
