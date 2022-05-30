@@ -1,14 +1,11 @@
 import os
 import sys
+from time import sleep
 from tgScraper import *
 from translator import translator
+from util_funcs import *
 
 
-def toBool(str):
-    return False if str.lower() == "false" else True
-
-def strOrNone(str):
-    return None if str.lower() == "none" else str
 
 if __name__ == '__main__': 
 
@@ -28,6 +25,7 @@ if __name__ == '__main__':
     translateFROM = os.environ['ENV_TRANSLATE_FROM'].split()
     translateTO = os.environ['ENV_TRANSLATE_TO']
     delay = int(os.environ['ENV_DELAY'])
+
 
     # print(last_id)
     # print(overwrite_last_id)
