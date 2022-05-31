@@ -267,6 +267,7 @@ class tgScraper(tgFetch):
         last_id = 0
         self.response = ""
         dicts = []
+        toFile_path = None if toFile == None else f"{DATA_PATH}{toFile}"
         while True:
             self.response = self.load()
             if self.response == -1:
@@ -279,7 +280,8 @@ class tgScraper(tgFetch):
             self.sendTo(dict=new_dicts,stdout=stdout,sendTCP=sendTCP)
             tgScraper.saveData("last_id",last_id)
             dicts += new_dicts
-            self.sendTo(dict=dicts, toFile=f"{DATA_PATH}{toFile}")
+            
+            self.sendTo(dict=dicts, toFile=toFile_path)
             if batch:
                 break
             print("Waiting for new messages...")
@@ -423,7 +425,8 @@ class tgScraper(tgFetch):
         # tgScraper.saveToFile("file_speriamo.txt",html)
         dicts = tgScraper.html2dicts(html, self.chname,min_id = current_id+1, translator = self.translator)
         current_id = tgScraper.getMaxId(html)
-        self.sendTo(dict=dicts, toFile=f"{DATA_PATH}{toFile}", stdout=stdout,sendTCP=sendTCP)
+        toFile_path = None if toFile == None else f"{DATA_PATH}{toFile}"
+        self.sendTo(dict=dicts, toFile=toFile_path, stdout=stdout,sendTCP=sendTCP)
         print(f"\nCurrent id: {current_id}\n\n")
         tgScraper.saveData("last_id",current_id)
 
@@ -439,7 +442,7 @@ class tgScraper(tgFetch):
                 self.sendTo(dict=new_dicts, stdout=stdout,sendTCP=sendTCP)
                 tgScraper.saveData("last_id",current_id)
                 dicts += new_dicts
-                self.sendTo(dict=dicts, toFile=f"{DATA_PATH}{toFile}")
+                self.sendTo(dict=dicts, toFile=toFile_path)
                 time_to_sleep = sleepTime + rand.randint(1,40)/10
             else:
                 if batch:
