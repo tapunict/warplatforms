@@ -208,8 +208,8 @@ def updateLastIds():
                     config[section]['transaction_id'] = str(obj['transaction_id'])
                     modified = True
             except Exception as e: 
-                print(f"(updateLastIds[{section}]): {e}")     
-                # continue 
+                # print(f"(updateLastIds[{section}]): {e}")     
+                continue 
     if modified:
         #aggiorna il config.ini
         with open('config.ini', 'w') as configfile:
