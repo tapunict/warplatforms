@@ -332,6 +332,7 @@ commands_info = {
     " - update": "carica la versione corrente del config.ini, utile in caso di modifiche effettuate direttamente sul file",
     " - exit": "Termina l'esecuzione",
     " - restart": "Stoppa(o killa) i container passati in input \n\t(restart       [<nome_canale>]) STOP AND RUN \n\t(restart --force [<nome_canale>]) KILL AND RUN",
+    " - kill": "Stoppa immediatamente i container passati in input",
 }
 
 
@@ -357,7 +358,7 @@ commands = {
     "exit": lambda x: sys.exit(0),
     "restart": lambda x: containerRestart(x),
     "help": lambda x: printCommandsInfo(),
-}
+} 
 
 
 def execCommand(command):
