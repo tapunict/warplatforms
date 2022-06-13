@@ -1,4 +1,3 @@
-from concurrent.futures import thread
 import configparser
 import docker
 import subprocess
@@ -6,9 +5,6 @@ import sys
 import json
 import threading
 import time
-
-import os
-# import warnings
 
 IMAGE_CLIENT_TCP = "client-tcp"
 IMAGE_LOGSTASH = "logstash-for-ukraine"
@@ -45,7 +41,7 @@ def createScriptContainer(config, channel_name, port):
                 ports:
                     - "{port}:{port}"
                 networks:
-                    - logstash-network
+                    - warplatforms-network
                 volumes:
                     - $PWD/clientTCP/app/:/app/
                     - $PWD/clientTCP/data/{service_name}/:/data
@@ -88,7 +84,7 @@ def createDockerCompose(config):
                 ports:
                     - "10155:10155"
                 networks:
-                    - logstash-network
+                    - warplatforms-network
                 profiles: ["ingestion", "all"]
             
             zookeeper:
@@ -98,7 +94,7 @@ def createDockerCompose(config):
                     ZOOKEEPER_CLIENT_PORT: 2181
                     ZOOKEEPER_TICK_TIME: 2000
                 networks:
-                    - logstash-network
+                    - warplatforms-network
                 
             kafkaserver:
                 image: {IMAGE_KAFKA}
@@ -116,7 +112,7 @@ def createDockerCompose(config):
                     KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
                     KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
                 networks:
-                    - logstash-network
+                    - warplatforms-network
             
             kafka-ui:
                 image: {IMAGE_KAFKAUI}
@@ -132,7 +128,7 @@ def createDockerCompose(config):
                     KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafkaserver:29092
                     KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
                 networks:
-                    - logstash-network
+                    - warplatforms-network
             
             kafka-init:
                 image: {IMAGE_KAFKAINIT}
@@ -151,7 +147,7 @@ def createDockerCompose(config):
                     kafka-topics --bootstrap-server kafkaserver:29092 --list
                     "
                 networks:
-                    - logstash-network
+                    - warplatforms-network
                 
             elasticsearch: 
                 image: {IMAGE_ELASTICSEARCH} 
@@ -166,7 +162,7 @@ def createDockerCompose(config):
                         soft: -1 
                         hard: -1 
                 networks: 
-                    - logstash-network
+                    - warplatforms-network
                 profiles: ["storage", "all"] 
              
             kibana: 
@@ -174,13 +170,25 @@ def createDockerCompose(config):
                 ports: 
                     - '5601:5601' 
                 networks: 
-                    - logstash-network
+                    - warplatforms-network
                 mem_limit: 1g
                 profiles: ["visualization", "all"] 
+            
+            spark:
+                build: 
+                    context: spark
+                networks: 
+                    - warplatforms-network
+                depends_on:
+                    - elasticsearch
+                    - kibana
+                    - zookeeper
+                    - kafkaserver
+                profiles: ["computation", "all"] 
 
     networks:
-        logstash-network:
-            name: logstash-network
+        warplatforms-network:
+            name: warplatforms-network
             driver: bridge"""
     return script
 
@@ -358,7 +366,7 @@ commands = {
     "exit": lambda x: sys.exit(0),
     "restart": lambda x: containerRestart(x),
     "help": lambda x: printCommandsInfo(),
-} 
+}
 
 
 def execCommand(command):
