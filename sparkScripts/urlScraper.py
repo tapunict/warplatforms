@@ -1,3 +1,7 @@
+import requests
+import time
+from bs4 import BeautifulSoup
+from bs4.element import Comment
 import re
 
 esempioInput = """add1 http://mit.edu.com abc
@@ -20,6 +24,7 @@ def findAllUrls(text):
     return matches
 
 def ensureProtocol(url,protocol="https"):
+    # print(f"[ENSURE PROTOCOL] {url}")
     base = "http"
     if isinstance(url,str):
         if url[:len(base)] != base:
@@ -30,4 +35,40 @@ def ensureProtocol(url,protocol="https"):
                 url[i] = f"{protocol}://{url[i]}"
     return url
 
-if __name__ == '__main__': findAllUrls(esempioInput)
+
+
+
+def tag_visible(element):
+    if element.parent.name in ['style', 'script', 'head', 'title', 'meta', '[document]']:
+        return False
+    if isinstance(element, Comment):
+        return False
+    return True
+
+
+def text_from_html(body):
+    soup = BeautifulSoup(body, 'html.parser')
+    texts = soup.findAll(text=True)
+    visible_texts = filter(tag_visible, texts)  
+    return u" ".join(t.strip() for t in visible_texts)
+    # return [t.strip() for t in visible_texts]
+
+
+def loadAndParse(address):
+    print(f"[LOAD AND PARSE] {address}")
+    print(f"\nLoading {address} ...")
+    time.sleep(0.01)
+    try:
+        response = requests.get(address, verify=False, timeout=7)
+        if not response.ok:
+            print("[ERRORE]: la pagina {address} non è stata caricata")
+            # return None
+            return "null"
+        return text_from_html(response.text)
+    except Exception as e: 
+        print(f"(loadAndParse): {e}")
+        return "null"
+
+
+# if __name__ == '__main__': findAllUrls(esempioInput)
+if __name__ == '__main__': loadAndParse(input("#>"))
