@@ -1,13 +1,16 @@
 from pyspark.sql import SparkSession
 from pyspark.sql import types as st
-from pyspark.sql.functions import col, lit,to_timestamp,substring, to_date,explode,split,expr,udf
+from pyspark.sql import Row
+from pyspark.sql.functions import col, lit,to_timestamp,substring, to_date,explode,split,expr,udf,trim,length
 import datetime
+import pandas as pd
 # from wordcount import wordcount
-from urlScraper import findAllUrls,ensureProtocol
+from urlScraper import findAllUrls,ensureProtocol,loadAndParse
 
 JSON_FILE = 'data/messaggi.json'
 
 extractUrls = udf(lambda x: ensureProtocol(findAllUrls(x)),st.ArrayType(elementType=st.StringType())) 
+# getTextFromHtml = udf(lambda x: loadAndParse(x))
 
 #STRUTTURA DEL MESSAGGIO
 schema = st.StructType([
@@ -53,11 +56,42 @@ def main():
     
     data = spark.read.json(JSON_FILE, schema=schema)
 
+    #ottengo un dataframe con una row per ogni frase (dei messaggi presi da kafka)
     sentences = data.select(data.id,data.channel,explode(data.text).alias('sentence')) 
+    sentences.show()
 
     #estrae gli url
     urls = sentences.select(data.id,data.channel,explode(extractUrls(col('sentence'))).alias('url'))
     urls.show(truncate=False)
+
+    #bisogna sequenzializzare per evitare che troppe richieste http vadano in parallelo
+    text_list = []
+    # row_list = [str(row.url) for row in urls.collect()]
+    row_list = urls.collect()
+    for row in row_list:
+        print(row)
+        url = str(row.url)
+        text_list.append(Row(**row.asDict(), page_text=loadAndParse(url)))#name=u"john" 
+
+    df = spark.createDataFrame(text_list)
+    df.show()
+    
+    words = df.select(df.id,df.channel,
+        explode(
+            split(df.page_text, " ")
+        ).alias("word")
+    ).where(length(col("word")) >= 5)
+    words.show()
+
+    wordCounts = words.groupBy("id","channel","word").count()
+    wordCounts.orderBy(col("count").desc()).show()
+    # wordCounts.show()
+
+    # text_pages = urls.withColumn('html_text',getTextFromHtml(urls.url))
+    # text_pages.show()
+    #ottengo l'html dagli url
+
+
 
 
     #trova le parole
