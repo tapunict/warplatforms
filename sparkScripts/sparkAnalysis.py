@@ -10,7 +10,7 @@ from urlScraper import findAllUrls,ensureProtocol,loadAndParse
 JSON_FILE = 'data/messaggi.json'
 
 extractUrls = udf(lambda x: ensureProtocol(findAllUrls(x)),st.ArrayType(elementType=st.StringType())) 
-# getTextFromHtml = udf(lambda x: loadAndParse(x))
+getTextFromHtml = udf(lambda x: loadAndParse(x))
 
 #STRUTTURA DEL MESSAGGIO
 schema = st.StructType([
@@ -64,17 +64,22 @@ def main():
     urls = sentences.select(data.id,data.channel,explode(extractUrls(col('sentence'))).alias('url'))
     urls.show(truncate=False)
 
-    #bisogna sequenzializzare per evitare che troppe richieste http vadano in parallelo
-    text_list = []
-    # row_list = [str(row.url) for row in urls.collect()]
-    row_list = urls.collect()
-    for row in row_list:
-        print(row)
-        url = str(row.url)
-        text_list.append(Row(**row.asDict(), page_text=loadAndParse(url)))#name=u"john" 
 
-    df = spark.createDataFrame(text_list)
+    # #bisogna sequenzializzare per evitare che troppe richieste http vadano in parallelo
+    # text_list = []
+    # # row_list = [str(row.url) for row in urls.collect()]
+    # row_list = urls.collect()
+    # for row in row_list:
+    #     print(row)
+    #     url = str(row.url)
+    #     text_list.append(Row(**row.asDict(), page_text=loadAndParse(url)))#name=u"john" 
+
+    # df = spark.createDataFrame(text_list)
+    # df.show()
+    
+    df = urls.withColumn('page_text',getTextFromHtml(urls.url))
     df.show()
+    #ottengo l'html dagli url
     
     words = df.select(df.id,df.channel,
         explode(
@@ -87,9 +92,6 @@ def main():
     wordCounts.orderBy(col("count").desc()).show()
     # wordCounts.show()
 
-    # text_pages = urls.withColumn('html_text',getTextFromHtml(urls.url))
-    # text_pages.show()
-    #ottengo l'html dagli url
 
 
 
