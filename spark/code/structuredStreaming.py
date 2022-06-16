@@ -1,14 +1,23 @@
+from distutils.command.config import config
 from pyspark.sql import types as st
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import explode, unix_timestamp
-from pyspark.sql.functions import split, from_json, col
-from pyspark.sql.functions import lit, to_timestamp, substring, to_date, expr, udf, trim, length
-from pyspark.sql.functions import max as sparkMax
+from pyspark.sql.functions import explode, from_json, col, udf
 from urlScraper import findAllUrls, ensureProtocol, loadAndParse
+from elasticsearch import Elasticsearch
+from pyspark.conf import SparkConf
+from pyspark import SparkContext
 
 extractUrls = udf(lambda x: ensureProtocol(findAllUrls(x)),
                   st.ArrayType(elementType=st.StringType()))
 getTextFromHtml = udf(lambda x: loadAndParse(x))
+
+
+def get_spark_session():
+    spark_conf = SparkConf()\
+        .set('es.nodes', 'elasticsearch')\
+        .set('es.port', '9200')
+    sc = SparkContext(appName='spark-to-es', conf=spark_conf)
+    return SparkSession(sc)
 
 
 def get_record_schema():
@@ -30,10 +39,8 @@ def get_record_schema():
 
 
 # Create a Spark Session
-spark = SparkSession \
-    .builder \
-    .appName("warplatforms") \
-    .getOrCreate()
+# spark = SparkSession.builder.appName("warplatforms").getOrCreate()
+spark = get_spark_session()
 
 schema = get_record_schema()
 
@@ -54,13 +61,12 @@ df = spark.readStream \
     .format('kafka') \
     .option('kafka.bootstrap.servers', KAFKASERVER) \
     .option('subscribe', TOPIC) \
-    .option("startingOffsets", "earliest") \
+    .option("startingOffsets", "latest") \
     .load() \
     .select(from_json(col("value").cast("string"), schema).alias("data")) \
     .selectExpr("data.*")
 
 df.printSchema()
-# sentences = df.select(data.id,data.channel,explode(data.text).alias('sentence'))
 
 # Split the lines into words
 sentences = df.select(
@@ -85,37 +91,31 @@ urls = sentences.select(
 
 df = urls.withColumn('page_text', getTextFromHtml(urls.url))
 
-words = df.select(
-    col('id'),
-    col('channel'),
-    col('@timestamp'),
-    explode(
-        split(col('page_text'), " ")
-    ).alias("word")
-).where(length(col("word")) >= 5)
+es_mapping = {
+    "mappings": {
+        "properties": {
+            "id": {"type": "text"},
+            "channel": {"type": "text"},
+            "url": {"type": "text"},
+            "@timestamp":       {"type": "date", "format": "epoch_second"},
+            "page_text": {"type": "text"}
+        }
+    }
+}
 
-#split(lines.text, " ")
-# Generate running word count
-wordCounts = words.groupBy("id", "channel", "word", "@timestamp")\
-    .count()
+es = Elasticsearch('http://elasticsearch:9200')
 
-# .applyInPandas(normalize, schema="id string, channel string, url string")\
+response = es.indices.create(
+    index='spark-to-es', ignore=400)
 
-# Start running the query that prints the running counts to the console
-wordCounts \
-    .withColumn('timestamp', unix_timestamp(col('@timestamp'), "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").cast(st.TimestampType())) \
-    .withWatermark("timestamp", "1 minutes") \
-    .orderBy('timestamp', ascending=False)\
-    .writeStream \
-    .outputMode("complete") \
-    .format("console") \
-    .start()\
+if 'acknowledged' in response:
+    if response['acknowledged'] == True:
+        print("Successfully created index:", response['index'])
+
+df.printSchema()
+
+df.writeStream \
+    .option("checkpointLocation","/tmp/") \
+    .format('es') \
+    .start('spark-to-es')\
     .awaitTermination()
-
-
-#    .orderBy(col("count").desc()) \
-
-#    .groupBy(col("id")) \ da
-
-# .applyInPandas(predict, get_resulting_df_schema())
-# .agg(max(col('timestamp')).alias("timestamp")) \
