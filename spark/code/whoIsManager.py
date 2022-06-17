@@ -2,6 +2,7 @@ from datetime import datetime
 import time
 import whois
 from pyspark.sql.functions import udf,lit
+import json
 
 def extractElem(var,pos="Last",shouldBe=""):
     index = 0
@@ -23,25 +24,26 @@ url_prove = ["https://www.aranzulla.it","https://www.kmu.gov.ua/en","https://it.
 
 class whoIsManager:
 
+    relevant_fields = ["domain_name","whois_server","registrar","org","referral_url","state","city","country","creation_date","updated_date","expiration_date"]
 
     def __init__(self):
         self.cache = {}
         
-        self.udf_domain_name = lambda x: extractElem(self.lookFor(x,"domain_name"),pos="Last")
-        self.udf_whois_server = lambda x:self.lookFor(x,"whois_server")
-        self.udf_registrar = lambda x:self.lookFor(x,"registrar")
-        self.udf_org = lambda x:self.lookFor(x,"org")
-        self.udf_referral_url = lambda x:self.lookFor(x,"referral_url")
-        self.udf_state = lambda x:self.lookFor(x,"state")
+        self.domain_name = lambda x: extractElem(self.lookFor(x,"domain_name"),pos="Last")
+        self.whois_server = lambda x:self.lookFor(x,"whois_server")
+        self.registrar = lambda x:self.lookFor(x,"registrar")
+        self.org = lambda x:self.lookFor(x,"org")
+        self.referral_url = lambda x:self.lookFor(x,"referral_url")
+        self.state = lambda x:self.lookFor(x,"state")
 
-        self.udf_city = lambda x:self.lookFor(x,"city")
-        self.udf_country = lambda x:self.lookFor(x,"country")
+        self.city = lambda x:self.lookFor(x,"city")
+        self.country = lambda x:self.lookFor(x,"country")
         
-        self.udf_address = lambda x: extractElem(self.lookFor(x,"address"))
+        self.address = lambda x: extractElem(self.lookFor(x,"address"))
 
-        self.udf_creation_date = lambda x:extractElem(self.lookFor(x,"creation_date"),shouldBe="datetime")
-        self.udf_updated_date = lambda x: extractElem(self.lookFor(x,"updated_date"),shouldBe="datetime")
-        self.udf_expiration_date = lambda x: extractElem(self.lookFor(x,"expiration_date"),shouldBe="datetime")
+        self.creation_date = lambda x:extractElem(self.lookFor(x,"creation_date"),shouldBe="datetime")
+        self.updated_date = lambda x: extractElem(self.lookFor(x,"updated_date"),shouldBe="datetime")
+        self.expiration_date = lambda x: extractElem(self.lookFor(x,"expiration_date"),shouldBe="datetime")
         
 
 
@@ -69,14 +71,25 @@ class whoIsManager:
             return self.cache[URL][field]
         return None
 
+    def getRelevantFields(self, URL):
+        dict = {}
+        for field in whoIsManager.relevant_fields:
+            try:
+                dict[field] = str(getattr(self,field)(URL))
+            except:
+                dict[field] = "aa"
+        return json.dumps(dict)
+
 
 def main():
     whoIs = whoIsManager()
     for url in url_prove:
-        print(whoIs.udf_domain_name(url))
-        print(type(whoIs.udf_domain_name(url)))
-        print(whoIs.udf_creation_date(url))
-        print(type(whoIs.udf_creation_date(url)))
+        # print(whoIs.domain_name(url))
+        print(whoIs.getRelevantFields(url))
+        # print(whoIs.udf_domain_name(url))
+        # print(type(whoIs.udf_domain_name(url)))
+        # print(whoIs.udf_creation_date(url))
+        # print(type(whoIs.udf_creation_date(url)))
         print("-"*30)
     # print(whoIs.lookFor("https://github.com","domain_name"))
     # print(whoIs.lookFor("https://wikipedia.com","domain_name"))
