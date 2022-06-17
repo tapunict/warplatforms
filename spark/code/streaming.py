@@ -1,6 +1,23 @@
+from distutils.command.config import config
 from pyspark.sql import types as st
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import from_json, col
+from pyspark.sql.functions import explode, from_json, col, udf
+from urlScraper import findAllUrls, ensureProtocol, loadAndParse
+from elasticsearch import Elasticsearch
+from pyspark.conf import SparkConf
+from pyspark import SparkContext
+
+extractUrls = udf(lambda x: ensureProtocol(findAllUrls(x)),
+                  st.ArrayType(elementType=st.StringType()))
+getTextFromHtml = udf(lambda x: loadAndParse(x))
+
+
+def get_spark_session():
+    spark_conf = SparkConf()\
+        .set('es.nodes', 'elasticsearch')\
+        .set('es.port', '9200')
+    sc = SparkContext(appName='spark-to-es', conf=spark_conf)
+    return SparkSession(sc)
 
 
 def get_record_schema():
@@ -17,37 +34,88 @@ def get_record_schema():
         st.StructField('videos',   st.ArrayType(
             elementType=st.StringType()), nullable=True),
         st.StructField('views',      st.StringType(), nullable=True),
+        st.StructField('@timestamp',    st.StringType(), nullable=True)
     ])
 
 
-def main():
-    spark = SparkSession.builder \
-        .appName("warplatforms") \
-        .getOrCreate()
+# Create a Spark Session
+# spark = SparkSession.builder.appName("warplatforms").getOrCreate()
+spark = get_spark_session()
 
-    spark.sparkContext.setLogLevel("ERROR")
+schema = get_record_schema()
 
-    TOPIC = "telegram-messages"
-    KAFKASERVER = "kafkaserver:29092"
-    # KAFKASERVER = "localhost:9092"
+schema2 = st.StructType([
+    st.StructField('id',  st.StringType(), nullable=True),
+    st.StructField('channel',  st.StringType(), nullable=True),
+    st.StructField('url',   st.StringType(), nullable=True),
+])
 
-    schema = get_record_schema()
+TOPIC = "telegram-messages"
+KAFKASERVER = "kafkaserver:29092"
+# KAFKASERVER = "localhost:9092"
 
-    df = spark.readStream \
-        .format('kafka') \
-        .option('kafka.bootstrap.servers', KAFKASERVER) \
-        .option('subscribe', TOPIC) \
-        .option("startingOffsets", "earliest") \
-        .load() \
-        .select(from_json(col("value").cast("string"), schema).alias("data")) \
-        .selectExpr("data.*")
+spark.sparkContext.setLogLevel("ERROR")
 
-    df.writeStream \
-        .format("console") \
-        .outputMode("append") \
-        .start() \
-        .awaitTermination()
+# Create DataFrame representing the stream of input lines from connection to tapnc:9999
+df = spark.readStream \
+    .format('kafka') \
+    .option('kafka.bootstrap.servers', KAFKASERVER) \
+    .option('subscribe', TOPIC) \
+    .option("startingOffsets", "latest") \
+    .load() \
+    .select(from_json(col("value").cast("string"), schema).alias("data")) \
+    .selectExpr("data.*")
 
+df.printSchema()
 
-if __name__ == '__main__':
-    main()
+# Split the lines into words
+sentences = df.select(
+    col('id'),
+    col('channel'),
+    col('@timestamp'),
+    explode(
+        df.text
+    ).alias("sentence")
+)
+sentences.printSchema()
+
+# extractUrls(col('sentence'))
+urls = sentences.select(
+    col('id'),
+    col('channel'),
+    col('@timestamp'),
+    explode(
+        extractUrls(col('sentence'))
+    ).alias('url')
+)
+
+df = urls.withColumn('page_text', getTextFromHtml(urls.url))
+
+es_mapping = {
+    "mappings": {
+        "properties": {
+            "id": {"type": "text"},
+            "channel": {"type": "text"},
+            "url": {"type": "text"},
+            "@timestamp":       {"type": "date", "format": "epoch_second"},
+            "page_text": {"type": "text"}
+        }
+    }
+}
+
+es = Elasticsearch('http://elasticsearch:9200')
+
+response = es.indices.create(
+    index='spark-to-es', ignore=400)
+
+if 'acknowledged' in response:
+    if response['acknowledged'] == True:
+        print("Successfully created index:", response['index'])
+
+df.printSchema()
+
+df.writeStream \
+    .option("checkpointLocation","/tmp/") \
+    .format('es') \
+    .start('spark-to-es')\
+    .awaitTermination()
