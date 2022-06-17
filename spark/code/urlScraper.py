@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 from bs4.element import Comment
 import re
 
+
 esempioInput = """add1 http://mit.edu.com abc
 add2 https://unict.com . abc
 add3 www.google.be. uvw
@@ -37,7 +38,6 @@ def ensureProtocol(url,protocol="https"):
 
 
 
-
 def tag_visible(element):
     if element.parent.name in ['style', 'script', 'head', 'title', 'meta', '[document]']:
         return False
@@ -68,6 +68,8 @@ def loadAndParse(address):
     except Exception as e: 
         print(f"(loadAndParse): {e}")
         return "null"
+
+
 
 
 # if __name__ == '__main__': findAllUrls(esempioInput)
