@@ -4,11 +4,12 @@ from doctest import ELLIPSIS_MARKER
 from pyspark.sql import types as st
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import explode, from_json, col, udf
-from urlScraper import findAllUrls, ensureProtocol, loadAndParse
 from elasticsearch import Elasticsearch
 from pyspark.conf import SparkConf
 from pyspark import SparkContext
+from urlScraper import findAllUrls, ensureProtocol, loadAndParse
 from whoIsManager import whoIsManager
+from sentimentAnalysis import getPipeline, getTrainingSet
 
 whoIs = whoIsManager()
 
@@ -67,7 +68,7 @@ def getReader(mode=""):
                     .format("socket") \
                     .option("host", "localhost") \
                     .option("port", 9997) \
-                    .option("startingOffsets", "earliest") \
+                    .option("startingOffsets", "latest") \
                     .load()
     return spark.readStream \
                 .format('kafka') \
@@ -105,12 +106,20 @@ KAFKASERVER = "kafkaserver:29092"
 
 spark.sparkContext.setLogLevel("ERROR")
 
+######
+training_set =  getTrainingSet()
+
+pipeline = getPipeline(inputCol="text",labelCol="positive")
+
+pipelineFit = pipeline.fit(training_set)
+######
+
 df = getReader("test").select(from_json(col("value").cast("string"), schema).alias("data")) \
                       .selectExpr("data.*")
 
 df.printSchema()
 
-# Split the lines into words
+# Split the list into sentences
 sentences = df.select(
     col('id'),
     col('channel'),
@@ -131,9 +140,12 @@ urls = sentences.select(
     ).alias('url')
 )
 
-df = urls.withColumn('page_text', getTextFromHtml(urls.url))\
+#add text from html webpage and whois info
+df = urls.withColumn('text', getTextFromHtml(urls.url))\
          .withColumn('whois', udf_whois(urls.url))
 
-df.printSchema()
+out_df = pipelineFit.transform(df).select('id','channel','@timestamp','text','whois',col('prediction').alias("mood_prediction"))
 
-outputStream(df,mode="test")
+out_df.printSchema()
+
+outputStream(out_df,mode="test")
