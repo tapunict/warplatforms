@@ -109,7 +109,7 @@ spark.sparkContext.setLogLevel("ERROR")
 ######
 training_set =  getTrainingSet()
 
-pipeline = getPipeline(inputCol="text",labelCol="positive")
+pipeline = getPipeline(inputCol="page_text",labelCol="positive")
 
 pipelineFit = pipeline.fit(training_set)
 ######
@@ -141,10 +141,10 @@ urls = sentences.select(
 )
 
 #add text from html webpage and whois info
-df = urls.withColumn('text', getTextFromHtml(urls.url))\
+df = urls.withColumn('page_text', getTextFromHtml(urls.url))\
          .withColumn('whois', udf_whois(urls.url))
 
-out_df = pipelineFit.transform(df).select('id','channel','@timestamp','text','whois',col('prediction').alias("mood_prediction"))
+out_df = pipelineFit.transform(df).select('id','channel','@timestamp','page_text','url','whois',col('prediction').alias("mood_prediction"))
 
 out_df.printSchema()
 
