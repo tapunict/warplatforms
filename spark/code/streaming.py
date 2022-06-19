@@ -8,11 +8,11 @@ from elasticsearch import Elasticsearch
 from pyspark.conf import SparkConf
 from pyspark import SparkContext
 
-#our modules
+# our modules
 from urlScraper import findAllUrls, ensureProtocol, loadAndParse
 from whoIsManager import whoIsManager
 from sentimentAnalysis import getModel, saveModel, cleanText
-from geocoding import findCitiesInText,getLocationsAsString
+from geocoding import findCitiesInText, getLocationsAsString
 
 whoIs = whoIsManager()
 
@@ -24,6 +24,7 @@ udf_whois = udf(whoIs.getRelevantFields)
 equivalent_emotion = udf(lambda x: "positive" if x == 1.0 else "negative")
 ukrainian_cities = udf(findCitiesInText)
 cities_location = udf(getLocationsAsString)
+
 
 def get_spark_session():
     spark_conf = SparkConf()\
@@ -184,14 +185,14 @@ out_df = pipelineFit.transform(df)\
                             "emotion_detection")
 
 message_analysis = pipelineFit.transform(message_analysis)\
-                    .withColumn('emotion_detection', equivalent_emotion(col('prediction')))\
-                    .select('id',
-                            'channel',
-                            'timestamp',
-                            col('content').alias("traduction"),
-                            "emotion_detection")\
-                    .withColumn('cities',ukrainian_cities(col('traduction'))) \
-                    .withColumn('locations',cities_location(col('cities'))) #esclusivamente città ucraine
+    .withColumn('emotion_detection', equivalent_emotion(col('prediction')))\
+    .select('id',
+            'channel',
+            'timestamp',
+            col('content').alias("traduction"),
+            "emotion_detection")\
+    .withColumn('cities', ukrainian_cities(col('traduction'))) \
+    .withColumn('location', cities_location(col('cities')))  # esclusivamente città ucraine
 
 # col('prediction')
 out_df.printSchema()
