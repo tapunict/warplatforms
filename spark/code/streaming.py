@@ -191,7 +191,7 @@ message_analysis = pipelineFit.transform(message_analysis)\
             'timestamp',
             col('content').alias("traduction"),
             "emotion_detection")\
-    .withColumn('city', explode(ukrainian_cities(split(col("traduction"),",")))) \
+    .withColumn('city', explode(split(ukrainian_cities(col("traduction")),","))) \
     .withColumn('location', city_location(col('city')))  # esclusivamente città ucraine
 
 # col('prediction')
