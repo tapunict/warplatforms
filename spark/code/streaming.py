@@ -1,16 +1,21 @@
+from codecs import getreader
 from distutils.command.config import config
+from doctest import ELLIPSIS_MARKER
 from pyspark.sql import types as st
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import explode, from_json, col, udf
-from urlScraper import findAllUrls, ensureProtocol, loadAndParse
 from elasticsearch import Elasticsearch
 from pyspark.conf import SparkConf
 from pyspark import SparkContext
+from urlScraper import findAllUrls, ensureProtocol, loadAndParse
+from whoIsManager import whoIsManager
+from sentimentAnalysis import getPipeline, getTrainingSet
 
-extractUrls = udf(lambda x: ensureProtocol(findAllUrls(x)),
-                  st.ArrayType(elementType=st.StringType()))
+whoIs = whoIsManager()
+
+extractUrls = udf(lambda x: ensureProtocol(findAllUrls(x)),st.ArrayType(elementType=st.StringType()))
 getTextFromHtml = udf(lambda x: loadAndParse(x))
-
+udf_whois = udf(lambda x : whoIs.getRelevantFields(x))
 
 def get_spark_session():
     spark_conf = SparkConf()\
@@ -37,18 +42,63 @@ def get_record_schema():
         st.StructField('@timestamp',    st.StringType(), nullable=True)
     ])
 
+def get_elastic_schema():
+    return {
+            "mappings": {
+                "properties": {
+                    "id": {"type": "text"},
+                    "channel": {"type": "text"},
+                    "url": {"type": "text"},
+                    "@timestamp":       {"type": "date", "format": "epoch_second"},
+                    "page_text": {"type": "text"}
+                    }
+                }
+            }
 
 # Create a Spark Session
-# spark = SparkSession.builder.appName("warplatforms").getOrCreate()
 spark = get_spark_session()
 
 schema = get_record_schema()
 
-schema2 = st.StructType([
-    st.StructField('id',  st.StringType(), nullable=True),
-    st.StructField('channel',  st.StringType(), nullable=True),
-    st.StructField('url',   st.StringType(), nullable=True),
-])
+es_mapping = get_elastic_schema()
+
+def getReader(mode=""):
+    if mode == "test":
+        return spark.readStream \
+                    .format("socket") \
+                    .option("host", "localhost") \
+                    .option("port", 9997) \
+                    .option("startingOffsets", "latest") \
+                    .load()
+    return spark.readStream \
+                .format('kafka') \
+                .option('kafka.bootstrap.servers', KAFKASERVER) \
+                .option('subscribe', TOPIC) \
+                .option("startingOffsets", "latest") \
+                .load()
+
+def outputStream(stream,mode=""):
+    if mode == "test":
+        stream.writeStream \
+              .outputMode("append") \
+              .format("console") \
+              .start()\
+              .awaitTermination()
+    else:
+        es = Elasticsearch('http://elasticsearch:9200')
+
+        response = es.indices.create(index='spark-to-es', ignore=400)
+
+        if 'acknowledged' in response:
+            if response['acknowledged'] == True:
+                print("Successfully created index:", response['index'])
+        
+        stream.writeStream \
+              .option("checkpointLocation","/tmp/") \
+              .format('es') \
+              .start('spark-to-es')\
+              .awaitTermination()
+
 
 TOPIC = "telegram-messages"
 KAFKASERVER = "kafkaserver:29092"
@@ -56,19 +106,20 @@ KAFKASERVER = "kafkaserver:29092"
 
 spark.sparkContext.setLogLevel("ERROR")
 
-# Create DataFrame representing the stream of input lines from connection to tapnc:9999
-df = spark.readStream \
-    .format('kafka') \
-    .option('kafka.bootstrap.servers', KAFKASERVER) \
-    .option('subscribe', TOPIC) \
-    .option("startingOffsets", "latest") \
-    .load() \
-    .select(from_json(col("value").cast("string"), schema).alias("data")) \
-    .selectExpr("data.*")
+######
+training_set =  getTrainingSet()
+
+pipeline = getPipeline(inputCol="page_text",labelCol="positive")
+
+pipelineFit = pipeline.fit(training_set)
+######
+
+df = getReader("test").select(from_json(col("value").cast("string"), schema).alias("data")) \
+                      .selectExpr("data.*")
 
 df.printSchema()
 
-# Split the lines into words
+# Split the list into sentences
 sentences = df.select(
     col('id'),
     col('channel'),
@@ -89,33 +140,12 @@ urls = sentences.select(
     ).alias('url')
 )
 
-df = urls.withColumn('page_text', getTextFromHtml(urls.url))
+#add text from html webpage and whois info
+df = urls.withColumn('page_text', getTextFromHtml(urls.url))\
+         .withColumn('whois', udf_whois(urls.url))
 
-es_mapping = {
-    "mappings": {
-        "properties": {
-            "id": {"type": "text"},
-            "channel": {"type": "text"},
-            "url": {"type": "text"},
-            "@timestamp":       {"type": "date", "format": "epoch_second"},
-            "page_text": {"type": "text"}
-        }
-    }
-}
+out_df = pipelineFit.transform(df).select('id','channel','@timestamp','page_text','url','whois',col('prediction').alias("mood_prediction"))
 
-es = Elasticsearch('http://elasticsearch:9200')
+out_df.printSchema()
 
-response = es.indices.create(
-    index='spark-to-es', ignore=400)
-
-if 'acknowledged' in response:
-    if response['acknowledged'] == True:
-        print("Successfully created index:", response['index'])
-
-df.printSchema()
-
-df.writeStream \
-    .option("checkpointLocation","/tmp/") \
-    .format('es') \
-    .start('spark-to-es')\
-    .awaitTermination()
+outputStream(out_df,mode="test")
