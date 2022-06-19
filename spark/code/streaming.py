@@ -9,13 +9,15 @@ from pyspark.conf import SparkConf
 from pyspark import SparkContext
 from urlScraper import findAllUrls, ensureProtocol, loadAndParse
 from whoIsManager import whoIsManager
-from sentimentAnalysis import getPipeline, getTrainingSet
+from sentimentAnalysis import getModel,saveModel,cleanText
 
 whoIs = whoIsManager()
 
 extractUrls = udf(lambda x: ensureProtocol(findAllUrls(x)),st.ArrayType(elementType=st.StringType()))
-getTextFromHtml = udf(lambda x: loadAndParse(x))
-udf_whois = udf(lambda x : whoIs.getRelevantFields(x))
+getTextFromHtml = udf(loadAndParse)
+udf_cleanText = udf(cleanText)
+udf_whois = udf(whoIs.getRelevantFields)
+equivalent_emotion = udf(lambda x: "positive" if x==1.0 else "negative")
 
 def get_spark_session():
     spark_conf = SparkConf()\
@@ -50,13 +52,15 @@ def get_elastic_schema():
                     "channel": {"type": "text"},
                     "url": {"type": "text"},
                     "@timestamp":       {"type": "date", "format": "epoch_second"},
-                    "page_text": {"type": "text"}
+                    "content": {"type": "text"}
                     }
                 }
             }
 
 # Create a Spark Session
 spark = get_spark_session()
+
+spark.sparkContext.setLogLevel("ERROR")
 
 schema = get_record_schema()
 
@@ -79,11 +83,10 @@ def getReader(mode=""):
 
 def outputStream(stream,mode=""):
     if mode == "test":
-        stream.writeStream \
-              .outputMode("append") \
-              .format("console") \
-              .start()\
-              .awaitTermination()
+        return stream.writeStream \
+                     .outputMode("append") \
+                     .format("console") \
+                     .start()
     else:
         es = Elasticsearch('http://elasticsearch:9200')
 
@@ -93,26 +96,20 @@ def outputStream(stream,mode=""):
             if response['acknowledged'] == True:
                 print("Successfully created index:", response['index'])
         
-        stream.writeStream \
-              .option("checkpointLocation","/tmp/") \
-              .format('es') \
-              .start('spark-to-es')\
-              .awaitTermination()
+        return stream.writeStream \
+                     .option("checkpointLocation","/tmp/") \
+                     .format('es') \
+                     .start('spark-to-es')
 
 
 TOPIC = "telegram-messages"
 KAFKASERVER = "kafkaserver:29092"
 # KAFKASERVER = "localhost:9092"
 
-spark.sparkContext.setLogLevel("ERROR")
+#Pipeline emotion_detection
+pipelineFit = getModel(task="emotion_detection",inputCol="content",labelCol="label")
+saveModel(pipelineFit,task="emotion_detection")
 
-######
-training_set =  getTrainingSet()
-
-pipeline = getPipeline(inputCol="page_text",labelCol="positive")
-
-pipelineFit = pipeline.fit(training_set)
-######
 
 df = getReader("test").select(from_json(col("value").cast("string"), schema).alias("data")) \
                       .selectExpr("data.*")
@@ -124,28 +121,54 @@ sentences = df.select(
     col('id'),
     col('channel'),
     col('@timestamp'),
+    col('data'),
     explode(
         df.text
     ).alias("sentence")
 )
 sentences.printSchema()
 
-# extractUrls(col('sentence'))
+# geoWords = sentences.select(
+#     col('id'),
+#     col('channel'),
+#     col('@timestamp'),
+#     col('data')
+# )
+
+# Extract Urls from sentences
 urls = sentences.select(
     col('id'),
     col('channel'),
     col('@timestamp'),
+    col('data'),
     explode(
         extractUrls(col('sentence'))
     ).alias('url')
 )
 
 #add text from html webpage and whois info
-df = urls.withColumn('page_text', getTextFromHtml(urls.url))\
+df = urls.withColumn('content', udf_cleanText(getTextFromHtml(urls.url)))\
          .withColumn('whois', udf_whois(urls.url))
 
-out_df = pipelineFit.transform(df).select('id','channel','@timestamp','page_text','url','whois',col('prediction').alias("mood_prediction"))
+#Sentiment Analysis: emotion_detection
+out_df = pipelineFit.transform(df)\
+                    .withColumn('emotion_detection',equivalent_emotion(col('prediction')))\
+                    .select('id',
+                            'channel',
+                            '@timestamp',
+                            'content',
+                            'url',
+                            'whois',
+                            "emotion_detection")
 
+#col('prediction')
 out_df.printSchema()
 
-outputStream(out_df,mode="test")
+out_stream = outputStream(out_df,mode="test")
+
+# out_stream2 = outputStream(geoWords,mode="test")
+
+
+
+out_stream.awaitTermination()
+# out_stream2.awaitTermination()
