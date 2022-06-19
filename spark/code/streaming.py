@@ -3,7 +3,7 @@ from distutils.command.config import config
 from doctest import ELLIPSIS_MARKER
 from pyspark.sql import types as st
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import explode, from_json, col, udf
+from pyspark.sql.functions import explode, from_json, col, udf,split
 from elasticsearch import Elasticsearch
 from pyspark.conf import SparkConf
 from pyspark import SparkContext
@@ -191,7 +191,7 @@ message_analysis = pipelineFit.transform(message_analysis)\
             'timestamp',
             col('content').alias("traduction"),
             "emotion_detection")\
-    .withColumn('city', explode(ukrainian_cities(col('traduction')))) \
+    .withColumn('city', explode(ukrainian_cities(split(col("traduction"),",")))) \
     .withColumn('location', city_location(col('city')))  # esclusivamente città ucraine
 
 # col('prediction')
