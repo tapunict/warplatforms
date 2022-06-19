@@ -12,7 +12,7 @@ from pyspark import SparkContext
 from urlScraper import findAllUrls, ensureProtocol, loadAndParse
 from whoIsManager import whoIsManager
 from sentimentAnalysis import getModel, saveModel, cleanText
-from geocoding import findCitiesInText, getLocationsAsString
+from geocoding import findCitiesInText, getLocationAsString
 
 whoIs = whoIsManager()
 
@@ -23,7 +23,7 @@ udf_cleanText = udf(cleanText)
 udf_whois = udf(whoIs.getRelevantFields)
 equivalent_emotion = udf(lambda x: "positive" if x == 1.0 else "negative")
 ukrainian_cities = udf(findCitiesInText)
-cities_location = udf(getLocationsAsString)
+city_location = udf(getLocationAsString)
 
 
 def get_spark_session():
@@ -191,8 +191,8 @@ message_analysis = pipelineFit.transform(message_analysis)\
             'timestamp',
             col('content').alias("traduction"),
             "emotion_detection")\
-    .withColumn('cities', ukrainian_cities(col('traduction'))) \
-    .withColumn('location', cities_location(col('cities')))  # esclusivamente città ucraine
+    .withColumn('city', explode(ukrainian_cities(col('traduction')))) \
+    .withColumn('location', city_location(col('city')))  # esclusivamente città ucraine
 
 # col('prediction')
 out_df.printSchema()
