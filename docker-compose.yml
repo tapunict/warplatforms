@@ -1,41 +1,360 @@
-version: '3.7'
 
-services:
+    version: '3.7'
 
-  apserver:
-    build:
-      context: clientTCP
-      dockerfile: Dockerfile
-    image: client-tcp
-    ports: 
-      - "5000:5000"
+    services:
+    
+            ukraina24tv:
+                build:
+                    context: clientTCP
+                    dockerfile: Dockerfile  
+                image: client-tcp
+                # ports:
+                #     - "5000:5000"
+                networks:
+                    - warplatforms-network
+                volumes:
+                    - $PWD/clientTCP/app/:/app/
+                    - $PWD/clientTCP/data/ukraina24tv/:/data
+                environment:
+                    - ENV_TRANSLATION=True
+                    - ENV_LAST_ID=37386
+                    - ENV_TRANSACTION_ID=1999
+                    - ENV_OVERWRITE_LAST_ID=True
+                    - ENV_METHOD=all
+                    - ENV_BATCH=True
+                    - ENV_DELAY=5
+                    - ENV_TO_FILE=None
+                    - ENV_STDOUT=False
+                    - ENV_SENDTCP=True
+                    - ENV_TRANSLATE_FROM=uk
+                    - ENV_TRANSLATE_TO=en
+                    - ENV_QUERY=None
+
+                command: python -u main.py ukraina24tv
+                profiles: ["fetching", "all"]
+                
+            ukrwarrep:
+                build:
+                    context: clientTCP
+                    dockerfile: Dockerfile  
+                image: client-tcp
+                # ports:
+                #     - "5001:5001"
+                networks:
+                    - warplatforms-network
+                volumes:
+                    - $PWD/clientTCP/app/:/app/
+                    - $PWD/clientTCP/data/ukrwarrep/:/data
+                environment:
+                    - ENV_LAST_ID=5618
+                    - ENV_TRANSACTION_ID=479
+                    - ENV_OVERWRITE_LAST_ID=True
+                    - ENV_METHOD=all
+                    - ENV_BATCH=True
+                    - ENV_DELAY=5
+                    - ENV_TO_FILE=None
+                    - ENV_STDOUT=False
+                    - ENV_SENDTCP=True
+                    - ENV_TRANSLATION=False
+                    - ENV_TRANSLATE_FROM=uk
+                    - ENV_TRANSLATE_TO=en
+                    - ENV_QUERY=None
+
+                command: python -u main.py UkrWarRep
+                profiles: ["fetching", "all"]
+                
+            oligarchjets:
+                build:
+                    context: clientTCP
+                    dockerfile: Dockerfile  
+                image: client-tcp
+                # ports:
+                #     - "5002:5002"
+                networks:
+                    - warplatforms-network
+                volumes:
+                    - $PWD/clientTCP/app/:/app/
+                    - $PWD/clientTCP/data/oligarchjets/:/data
+                environment:
+                    - ENV_LAST_ID=609
+                    - ENV_TRANSACTION_ID=219
+                    - ENV_OVERWRITE_LAST_ID=True
+                    - ENV_METHOD=all
+                    - ENV_BATCH=True
+                    - ENV_DELAY=5
+                    - ENV_TO_FILE=None
+                    - ENV_STDOUT=False
+                    - ENV_SENDTCP=True
+                    - ENV_TRANSLATION=False
+                    - ENV_TRANSLATE_FROM=uk
+                    - ENV_TRANSLATE_TO=en
+                    - ENV_QUERY=None
+
+                command: python -u main.py OligarchJets
+                profiles: ["fetching", "all"]
+                
+            ukrainenowitalian:
+                build:
+                    context: clientTCP
+                    dockerfile: Dockerfile  
+                image: client-tcp
+                # ports:
+                #     - "5003:5003"
+                networks:
+                    - warplatforms-network
+                volumes:
+                    - $PWD/clientTCP/app/:/app/
+                    - $PWD/clientTCP/data/ukrainenowitalian/:/data
+                environment:
+                    - ENV_LAST_ID=9479
+                    - ENV_TRANSACTION_ID=664
+                    - ENV_OVERWRITE_LAST_ID=True
+                    - ENV_METHOD=all
+                    - ENV_BATCH=True
+                    - ENV_DELAY=5
+                    - ENV_TO_FILE=None
+                    - ENV_STDOUT=False
+                    - ENV_SENDTCP=True
+                    - ENV_TRANSLATION=False
+                    - ENV_TRANSLATE_FROM=uk
+                    - ENV_TRANSLATE_TO=en
+                    - ENV_QUERY=None
+
+                command: python -u main.py UkraineNowItalian
+                profiles: ["fetching", "all"]
+                
+            ukrainenow:
+                build:
+                    context: clientTCP
+                    dockerfile: Dockerfile  
+                image: client-tcp
+                # ports:
+                #     - "5004:5004"
+                networks:
+                    - warplatforms-network
+                volumes:
+                    - $PWD/clientTCP/app/:/app/
+                    - $PWD/clientTCP/data/ukrainenow/:/data
+                environment:
+                    - ENV_TRANSLATION=True
+                    - ENV_LAST_ID=13467
+                    - ENV_TRANSACTION_ID=841
+                    - ENV_OVERWRITE_LAST_ID=True
+                    - ENV_METHOD=all
+                    - ENV_BATCH=True
+                    - ENV_DELAY=5
+                    - ENV_TO_FILE=None
+                    - ENV_STDOUT=False
+                    - ENV_SENDTCP=True
+                    - ENV_TRANSLATE_FROM=uk
+                    - ENV_TRANSLATE_TO=en
+                    - ENV_QUERY=None
+
+                command: python -u main.py UkraineNow
+                profiles: ["fetching", "all"]
+                
+            financialtimes:
+                build:
+                    context: clientTCP
+                    dockerfile: Dockerfile  
+                image: client-tcp
+                # ports:
+                #     - "5005:5005"
+                networks:
+                    - warplatforms-network
+                volumes:
+                    - $PWD/clientTCP/app/:/app/
+                    - $PWD/clientTCP/data/financialtimes/:/data
+                environment:
+                    - ENV_LAST_ID=0
+                    - ENV_TRANSACTION_ID=200
+                    - ENV_OVERWRITE_LAST_ID=True
+                    - ENV_METHOD=all
+                    - ENV_BATCH=True
+                    - ENV_DELAY=5
+                    - ENV_TO_FILE=None
+                    - ENV_STDOUT=False
+                    - ENV_SENDTCP=True
+                    - ENV_TRANSLATION=False
+                    - ENV_TRANSLATE_FROM=uk
+                    - ENV_TRANSLATE_TO=en
+                    - ENV_QUERY=None
+
+                command: python -u main.py financialtimes
+                profiles: ["fetching", "all"]
+                
+            interessantetelegramchannel:
+                build:
+                    context: clientTCP
+                    dockerfile: Dockerfile  
+                image: client-tcp
+                # ports:
+                #     - "5006:5006"
+                networks:
+                    - warplatforms-network
+                volumes:
+                    - $PWD/clientTCP/app/:/app/
+                    - $PWD/clientTCP/data/interessantetelegramchannel/:/data
+                environment:
+                    - ENV_LAST_ID=296
+                    - ENV_BATCH=False
+                    - ENV_TRANSACTION_ID=220
+                    - ENV_TRANSLATION=True
+                    - ENV_OVERWRITE_LAST_ID=True
+                    - ENV_METHOD=all
+                    - ENV_DELAY=5
+                    - ENV_TO_FILE=None
+                    - ENV_STDOUT=False
+                    - ENV_SENDTCP=True
+                    - ENV_TRANSLATE_FROM=uk
+                    - ENV_TRANSLATE_TO=en
+                    - ENV_QUERY=None
+
+                command: python -u main.py InteressanteTelegramChannel
+                profiles: ["fetching", "all"]
+                
+            logstash:
+                build:
+                    context: LogstashDocker
+                    dockerfile: Dockerfile
+                image: logstash-for-ukraine
+                volumes:
+                    - $PWD/LogstashDocker/pipeline/:/usr/share/logstash/pipeline/
+                environment:
+                    # limite RAM di 1gb.
+                    - "LS_JAVA_OPTS=-Xms1g -Xmx1g"
+                ports:
+                    - "10155:10155"
+                networks:
+                    - warplatforms-network
+                profiles: ["ingestion", "all"]
+            
+            zookeeper:
+                image: confluentinc/cp-zookeeper:7.0.1
+                # container_name: zookeeper
+                environment:
+                    ZOOKEEPER_CLIENT_PORT: 2181
+                    ZOOKEEPER_TICK_TIME: 2000
+                networks:
+                    - warplatforms-network
+                
+            kafkaserver:
+                image: confluentinc/cp-kafka:7.0.1
+                # container_name: kafkaserver
+                ports:
+                    - "9092:9092"
+                depends_on:
+                    - zookeeper
+                environment:
+                    KAFKA_BROKER_ID: 1
+                    KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+                    KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+                    KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafkaserver:29092
+                    KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+                    KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+                    KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+                networks:
+                    - warplatforms-network
+            
+            kafka-ui:
+                image: provectuslabs/kafka-ui
+                # container_name: kafka-ui
+                depends_on:
+                    - zookeeper
+                    - kafkaserver
+                ports:
+                    - "8080:8080"
+                restart: always
+                environment:
+                    KAFKA_CLUSTERS_0_NAME: local
+                    KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafkaserver:29092
+                    KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+                networks:
+                    - warplatforms-network
+            
+            kafka-init:
+                image: confluentinc/cp-kafka:6.1.1
+                depends_on:
+                    - kafkaserver
+                    - zookeeper
+                    - kafka-ui
+                entrypoint: [ '/bin/sh', '-c' ]
+                command: |
+                    "
+                    # blocks until kafka is reachable
+                    kafka-topics --bootstrap-server kafkaserver:29092 --list
+                    echo -e 'Creating kafka topics'
+                    kafka-topics --bootstrap-server kafkaserver:29092 --create --if-not-exists --topic telegram-messages --replication-factor 1 --partitions 1
+                    echo -e 'Successfully created the following topics:'
+                    kafka-topics --bootstrap-server kafkaserver:29092 --list
+                    "
+                networks:
+                    - warplatforms-network
+                
+            elasticsearch: 
+                image: elasticsearch:7.9.2 
+                ports: 
+                    - '9200:9200'
+                environment: 
+                    - discovery.type=single-node
+                    - "ES_JAVA_OPTS=-Xms2g -Xmx2g" 
+                mem_limit: 4g
+                ulimits: 
+                    memlock: 
+                        soft: -1 
+                        hard: -1 
+                networks: 
+                    - warplatforms-network
+                profiles: ["storage", "all"] 
+                
+            kibana: 
+                image: kibana:7.9.2 
+                ports: 
+                    - '5601:5601' 
+                networks: 
+                    - warplatforms-network
+                mem_limit: 1g
+                profiles: ["visualization", "all"] 
+                
+            # prova_es8: 
+            #     image: elasticsearch:8.2.2 
+            #     ports: 
+            #         - '9200:9200'
+            #     environment: 
+            #         - discovery.type=single-node
+            #         - xpack.security.enabled=false
+            #         - "ES_JAVA_OPTS=-Xms2g -Xmx2g" 
+            #     mem_limit: 4g
+            #     ulimits: 
+            #         memlock: 
+            #             soft: -1 
+            #             hard: -1 
+            #     networks: 
+            #         - warplatforms-network
+            #     profiles: ["storage"] 
+             
+            # prova_kibana8: 
+            #     image: kibana:8.2.2 
+            #     ports: 
+            #         - '5601:5601' 
+            #     networks: 
+            #         - warplatforms-network
+            #     mem_limit: 1g
+            #     profiles: ["visualization"] 
+                
+            spark:
+                build: 
+                    context: spark
+                networks: 
+                    - warplatforms-network
+                depends_on:
+                    - elasticsearch
+                    - kibana
+                    - zookeeper
+                    - kafkaserver
+                profiles: ["computation", "all"] 
+
     networks:
-      - logstash-network
-    volumes: 
-        - $PWD/clientTCP/app/:/app/
-    depends_on:
-       - logstash
-  
-  
-  logstash:
-    build:
-      context: LogstashDocker
-      dockerfile: Dockerfile
-    image: logstash-for-ukraine
-    volumes: 
-        - $PWD/LogstashDocker/pipeline/:/usr/share/logstash/pipeline/
-    environment: 
-        # limite RAM di 1gb. 
-        - "LS_JAVA_OPTS=-Xms1g -Xmx1g"
-    ports:
-      - "10155:10155"
-    networks:
-        - logstash-network
-    profiles: ["ingestion", "all"]
-
-
-networks:
-
-  logstash-network:
-    name: logstash-network
-    driver: bridge
+        warplatforms-network:
+            name: warplatforms-network
+            driver: bridge
