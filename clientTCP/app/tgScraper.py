@@ -8,11 +8,6 @@ import json
 from tgFetch import tgFetch
 from util_funcs import *
 
-    #########################################
-    #                                       #
-    #   ANCORA C'E' QUALCOSA DA SISTEMARE   #
-    #                                       #
-    #########################################  
 
 DATA_PATH = "../data/"
 PATH_TO_DATA = f"{DATA_PATH}information.json"
@@ -320,20 +315,6 @@ class tgScraper(tgFetch):
             print("[ERRORE]: la pagina {msg_url} non è stata caricata")
             return -1
 
-    # #da ultimare
-    # def getMessageByID(self, ID):
-    #     response = self.loadMessageByID(ID)
-    #     if response == -1:
-    #         return -1
-    #     # print(f"Response[:1000]: {response.text[:1000]}")
-    #     msg_soup = soup(response.text,features="html.parser")
-    #     print(f"[getMessageByID] Tipo :{type(msg_soup)}")
-    #     tgScraper.saveToFile("singleContainer.txt",str(msg_soup))
-    #     # container = msg_soup.find('div',{'class':'tgme_widget_message'})
-    #     # print(type(container))
-    #     # dict = tgScraper.dictFromMessage(container)
-    #     # print(dict)
-    #     return False #dict
 
     #type può essere o "http" o "file" o "string"
     def countMessagesInRequest(self, type = "http", address = None, saveTo = None, source = None):
@@ -455,9 +436,6 @@ class tgScraper(tgFetch):
                 break
             print(f"Waiting for {time_to_sleep}s...")
             time.sleep(time_to_sleep)
-            #fare una funzione asincrona che permette di ricevere comandi in input
-            #e esegue delle azioni, tipo:
-            #   - Stoppa l'esecuzione di questa funzione e salva l'id dell'ultimo messaggio letto
         return dicts
 
  
@@ -465,5 +443,4 @@ class tgScraper(tgFetch):
 
     #TODO:
     #   Query parameter if not found [DONE]
-    #   Hard limit in data fetch
-    #   Clean getAllMessages method
+    #   Hard limit in data fetch    [DONE]
