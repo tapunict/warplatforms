@@ -67,7 +67,7 @@ def getLocation(cityname):
 def getLocationAsString(cityname):
     location = getLocation(cityname)
     if location == False:
-        return False
+        return None
     return f"POINT({location['longitude']} {location['latitude']})"      
 # [float('%.5f' % location['latitude']), float('%.5f' % location['longitude'])]
 

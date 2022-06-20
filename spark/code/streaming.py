@@ -22,7 +22,7 @@ getTextFromHtml = udf(loadAndParse)
 udf_cleanText = udf(cleanText)
 udf_whois = udf(whoIs.getRelevantFields)
 equivalent_emotion = udf(lambda x: "positive" if x == 1.0 else "negative")
-ukrainian_cities = udf(findCitiesInText)
+ukrainian_cities = udf(findCitiesInText, st.ArrayType(st.StringType()))
 city_location = udf(getLocationAsString)
 
 
@@ -191,7 +191,7 @@ message_analysis = pipelineFit.transform(message_analysis)\
             'timestamp',
             col('content').alias("traduction"),
             "emotion_detection")\
-    .withColumn('city', explode(split(ukrainian_cities(col("traduction")),","))) \
+    .withColumn('city', explode(ukrainian_cities(col("traduction")))) \
     .withColumn('location', city_location(col('city')))  # esclusivamente città ucraine
 
 # col('prediction')

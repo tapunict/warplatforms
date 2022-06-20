@@ -1,8 +1,8 @@
-# Warplatforms - Tap for Ukraine
+# Warplatforms - Tap for Ukraine 
 
-<p>A multi-channel Telegram analyzer applied to the study of the war between Ukraine and Russia</p>
+<p>A multi-channel Telegram analyzer applied to the study of war dynamics between Ukraine and Russia</p>
 
-# Data pipeline
+# 🧠Data pipeline
 <p align="center">
   <img src="./docs/schema.png"/>
 </p>
@@ -14,13 +14,19 @@ $ python docker-composeCreator.py
 $ #> up
 ```
 
-# Useful links
+# 🔗Useful links
 | Container     | URL                                             | Description                             |
 | ------------- | ----------------------------------------------- | ----------------------------------------|
 | Kafkaserver   | http://localhost:8080                           | Kafka UI                                |
 | Elasticsearch | http://localhost:9200                           | ElasticSearch                           |
 | Kibana        | http://localhost:5601                           | Kibana                                  |
 
+# 📈 Final results
+<p align="center">
+  <img src="./docs/dashboard.png"/>
+</p>
 
-# Authors
-Lorenzo Modica & Giuseppe Napoli
+
+# 👨‍💻Authors
+* [Lorenzo Modica](https://github.com/loremod)
+* [Giuseppe Napoli](https://github.com/Kederf-8) 

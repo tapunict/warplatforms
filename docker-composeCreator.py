@@ -38,8 +38,8 @@ def createScriptContainer(config, channel_name, port):
                     context: clientTCP
                     dockerfile: Dockerfile  
                 image: {IMAGE_CLIENT_TCP}
-                ports:
-                    - "{port}:{port}"
+                # ports:
+                #     - "{port}:{port}"
                 networks:
                     - warplatforms-network
                 volumes:
@@ -164,7 +164,7 @@ def createDockerCompose(config):
                 networks: 
                     - warplatforms-network
                 profiles: ["storage", "all"] 
-             
+                
             kibana: 
                 image: {IMAGE_KIBANA} 
                 ports: 
@@ -173,7 +173,33 @@ def createDockerCompose(config):
                     - warplatforms-network
                 mem_limit: 1g
                 profiles: ["visualization", "all"] 
-            
+                
+            # prova_es8: 
+            #     image: elasticsearch:8.2.2 
+            #     ports: 
+            #         - '9200:9200'
+            #     environment: 
+            #         - discovery.type=single-node
+            #         - xpack.security.enabled=false
+            #         - "ES_JAVA_OPTS=-Xms2g -Xmx2g" 
+            #     mem_limit: 4g
+            #     ulimits: 
+            #         memlock: 
+            #             soft: -1 
+            #             hard: -1 
+            #     networks: 
+            #         - warplatforms-network
+            #     profiles: ["storage"] 
+             
+            # prova_kibana8: 
+            #     image: kibana:8.2.2 
+            #     ports: 
+            #         - '5601:5601' 
+            #     networks: 
+            #         - warplatforms-network
+            #     mem_limit: 1g
+            #     profiles: ["visualization"] 
+                
             spark:
                 build: 
                     context: spark
@@ -352,7 +378,7 @@ def printCommandsInfo():
 
 commands = {
     "shell": lambda x: subprocess.run(x),
-    "up": lambda x: subprocess.run(["docker-compose", "--profile", "all", "up", "--detach", "--remove-orphans"]),
+    "up": lambda x: subprocess.run(["docker-compose", "--profile", "all", "up", "--detach"]),
     "start": lambda x: subprocess.run(["docker-compose", "--profile", "fetching", "up", "--detach"]),
     "run-profile": lambda x: subprocess.run(["docker-compose", "--profile", x[0], "up", "--detach"]),
     "run": lambda x: subprocess.run(["docker-compose", "up"]+list(map(lambda t: t.lower(), x))+["--detach"]),
