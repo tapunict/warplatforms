@@ -21,6 +21,11 @@ $ #> up
 | Elasticsearch | http://localhost:9200                           | ElasticSearch                           |
 | Kibana        | http://localhost:5601                           | Kibana                                  |
 
+# Data Enrichment and Machine Learning Pipeline
+<p align="center">
+  <img src="./docs/Spark Streaming pipeline2.png"/>
+</p>
+
 # 📈 Results
 ### The social impact of war - daily messages volume difference
 <p align="center">
