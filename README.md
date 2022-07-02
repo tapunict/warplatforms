@@ -21,7 +21,18 @@ $ #> up
 | Elasticsearch | http://localhost:9200                           | ElasticSearch                           |
 | Kibana        | http://localhost:5601                           | Kibana                                  |
 
-# 📈 Final results
+# 📈 Results
+### The social impact of war - daily messages volume difference
+<p align="center">
+  <img src="./docs/daily_messages_difference.png"/>
+</p>
+
+### Most cited Ukraine areas in Telegram messages
+<p align="center">
+  <img width="682" height="512" src="./docs/mappa.jpg"/>
+</p>
+
+### And much more
 <p align="center">
   <img src="./docs/dashboard.png"/>
 </p>
