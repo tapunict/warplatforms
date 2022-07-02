@@ -21,6 +21,11 @@ $ #> up
 | Elasticsearch | http://localhost:9200                           | ElasticSearch                           |
 | Kibana        | http://localhost:5601                           | Kibana                                  |
 
+# Instant translation via several translators
+<p align="center">
+  <img width="682" height="512" src="./docs/translators.png"/>
+</p>
+
 # Data Enrichment and Machine Learning Pipeline
 <p align="center">
   <img src="./docs/Spark Streaming pipeline2.png"/>
